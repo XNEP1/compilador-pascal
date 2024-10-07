@@ -1,31 +1,47 @@
  # -------------------------------------------------------------------
  #            Arquivo: Makefile
  # -------------------------------------------------------------------
- #              Autor: Bruno Müller Junior
- #               Data: 08/2007
- #      Atualizado em: [09/08/2020, 19h:01m]
+ #              Autor: Bruno Krugel
+ #               Data: 10/2024
+ #      Atualizado em: [07/10/2024, 13h:03m]
  #
  # -------------------------------------------------------------------
 
 $DEPURA=1
 
-compilador: lex.yy.c compilador.tab.c compilador.o compilador.h Types.o Symbol.o
-	gcc lex.yy.c compilador.tab.c compilador.o Symbol.o Types.o -o compilador -lfl -ly -lc
+SRC_DIR = ./src
+BIN_DIR = ./bin
 
-lex.yy.c: compilador.l compilador.h
-	flex compilador.l
+LEX_FILE = $(BIN_DIR)/lex.yy.c
+PARSER_FILE = $(BIN_DIR)/compilador.tab.c
+PARSER_HEADER = $(BIN_DIR)/compilador.tab.h
+COMPILER = $(BIN_DIR)/compilador
 
-compilador.tab.c: compilador.y compilador.h Symbol.h Types.h
-	bison compilador.y -d -v
+SRC_FILES = $(SRC_DIR)/compiladorF.c $(SRC_DIR)/Symbol.c $(SRC_DIR)/Types.c
+OBJ_FILES = $(BIN_DIR)/compiladorF.o $(BIN_DIR)/Symbol.o $(BIN_DIR)/Types.o
+HEADERS = $(SRC_DIR)/compilador.h $(SRC_DIR)/Symbol.h $(SRC_DIR)/Types.h $(SRC_DIR)/genericVec.h
 
-compilador.o : compilador.h compiladorF.c
-	gcc -c compiladorF.c -o compilador.o
+all: folders $(BIN_DIR)/compilador
 
-Symbol.o: Symbol.c Symbol.h
-	gcc -c Symbol.c -o Symbol.o
+$(COMPILER): $(LEX_FILE) $(PARSER_FILE) $(OBJ_FILES)
+	cp $(HEADERS) $(BIN_DIR)
+	gcc $(LEX_FILE) $(PARSER_FILE) $(OBJ_FILES) -o $(COMPILER) -lfl -ly -lc
+	ln -fs $(COMPILER) ./compilador
 
-Types.o: Types.c Types.h
-	gcc -c Types.c -o Types.o
+# analisador léxico
+$(LEX_FILE): $(SRC_DIR)/compilador.l $(SRC_DIR)/compilador.h
+	flex -o $(LEX_FILE) $(SRC_DIR)/compilador.l
 
-clean :
-	rm -f compilador.tab.* lex.yy.c compilador.o compilador
+# analisador sintático
+$(PARSER_FILE) $(PARSER_HEADER): $(SRC_DIR)/compilador.y $(HEADERS)
+	bison -d -v -o $(PARSER_FILE) $(SRC_DIR)/compilador.y
+
+$(BIN_DIR)/%.o: $(SRC_DIR)/%.c $(HEADERS)
+	gcc -c $< -o $@
+
+folders:
+	mkdir -p $(BIN_DIR)
+
+clean:
+	rm -rf $(BIN_DIR) ./compilador ./MEPA
+
