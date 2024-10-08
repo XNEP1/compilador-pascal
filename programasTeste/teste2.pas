@@ -15,7 +15,7 @@ begin
 
     p := false;
 
-    if(true < false) then 
+    if(a*11 > 100) then 
     begin
         b:=900;
     end

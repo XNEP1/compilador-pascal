@@ -81,12 +81,17 @@ char *novo_rotulo();
 %type <tptr> tipo variavel
 %type <intV> lista_id_var // quantidade de vars
 %type <boolV> sinal // Se for True, consome o sinal e multiplica o termo do lado por -1.
-%type <typeID> fator termo expressao expressao_simples
+%type <typeID> expressao chamada_funcao
 %type <Vec_TypeID> lista_expressoes
-%type <tokenType> operador_aditivo operador_multiplicativo relacao
 
 %nonassoc LOWER_THAN_ELSE
 %nonassoc ELSE
+
+%left IGUAL DIFERENTE MAIOR MAIOR_IGUAL MENOR MENOR_IGUAL
+%left SOMA SUB OR
+%left MUL DIV AND
+%left NOT
+%left EXPRESSAO_PREC
 
 %%
 
@@ -198,47 +203,35 @@ lista_expressoes: expressao
                 | lista_expressoes VIRGULA expressao
                 ;
 
-expressao: expressao_simples {$$ = $1;}
-         | expressao_simples relacao expressao_simples {gen_operacao($1, $2, $3); $$ = BOOLEAN;}
+expressao: ABRE_PARENTESES expressao FECHA_PARENTESES {$$ = $2;} %prec EXPRESSAO_PREC
+         | chamada_funcao                   {/*TODO*/$$ = $1;} %prec EXPRESSAO_PREC
+         | sinal expressao                  {$$ = $2; gen_checa_sinal($1);} %prec EXPRESSAO_PREC
+
+         | NOT expressao                    {/*TODO*/$$ = $2;}
+
+         | expressao MUL expressao          {$$ = gen_operacao($1, $2, $3);}
+         | expressao DIV expressao          {$$ = gen_operacao($1, $2, $3);}
+         | expressao AND expressao          {$$ = gen_operacao($1, $2, $3);}
+
+         | expressao SOMA expressao         {$$ = gen_operacao($1, $2, $3);}
+         | expressao SUB expressao          {$$ = gen_operacao($1, $2, $3);}
+         | expressao OR expressao           {$$ = gen_operacao($1, $2, $3);}
+
+         | expressao IGUAL expressao        {$$ = gen_operacao($1, $2, $3);}
+         | expressao DIFERENTE expressao    {$$ = gen_operacao($1, $2, $3);}
+         | expressao MAIOR expressao        {$$ = gen_operacao($1, $2, $3);}
+         | expressao MAIOR_IGUAL expressao  {$$ = gen_operacao($1, $2, $3);}
+         | expressao MENOR expressao        {$$ = gen_operacao($1, $2, $3);}
+         | expressao MENOR_IGUAL expressao  {$$ = gen_operacao($1, $2, $3);}
+
+         | variavel                         { $$ = gen_carrega_var($1); /* TEMPORARIO, FALTA SUPORTE PARA ARRAY */ }
+         | NUMBER                           { $$ = gen_carrega_numero($1); }
          ;
-
-expressao_simples: sinal termo {$$ = $2; gen_checa_sinal($1);}
-                 | expressao_simples operador_aditivo termo {$$ = gen_operacao($1, $2, $3);}
-                 ;
-
-termo: fator {$$ = $1;}
-     | termo operador_multiplicativo /*sinal*/ fator {$$ = gen_operacao($1, $2, $3);}
-     ;
-
-fator:  variavel { $$ = gen_carrega_var($1); }
-        | NUMBER { $$ = gen_carrega_numero($1);}
-        | chamada_funcao
-        | ABRE_PARENTESES expressao FECHA_PARENTESES {$$ = $2;}
-        | NOT fator {$$ = $2;}
-        ;
 
 sinal: SOMA {$$ = false;}
      | SUB  {$$ = true;}
-     |      {$$ = false;}
      ;
 
-relacao: IGUAL          {$$ = $1;}
-       | DIFERENTE      {$$ = $1;}
-       | MAIOR          {$$ = $1;} 
-       | MAIOR_IGUAL    {$$ = $1;}
-       | MENOR          {$$ = $1;}
-       | MENOR_IGUAL    {$$ = $1;}
-       ;
-
-operador_aditivo: SOMA {$$ = $1;}
-                | SUB  {$$ = $1;}
-                | OR   {$$ = $1;} 
-                ; 
-
-operador_multiplicativo: MUL {$$ = $1;}
-                       | DIV {$$ = $1;}
-                       | AND {$$ = $1;}
-                       ;
 
 variavel: IDENT {$$ = $1;}
         | IDENT ABRE_COLCHETES lista_expressoes FECHA_COLCHETES {$$ = $1;}
@@ -255,7 +248,7 @@ chamada_procedimento: IDENT ABRE_PARENTESES lista_expressoes FECHA_PARENTESES
 // Isso significa que para toda variável, devemos verificar na tabela de simbolos 
 // se não é na verdade uma função. Se for, basta gerar o código para tal.
 /*| IDENT */
-chamada_funcao: IDENT ABRE_PARENTESES lista_expressoes FECHA_PARENTESES 
+chamada_funcao: IDENT ABRE_PARENTESES lista_expressoes FECHA_PARENTESES
               ;
 
 desvio: GOTO NUMBER;
@@ -422,34 +415,36 @@ TypeID gen_operacao(TypeID expressao1, int oper, TypeID expressao2){
 
     switch(oper){
         case IGUAL:
-            geraCodigo(NULL, "CMIG"); break;
+            geraCodigo(NULL, "CMIG"); return BOOLEAN;
         case DIFERENTE:
-            geraCodigo(NULL, "CMDG"); break;
+            geraCodigo(NULL, "CMDG"); return BOOLEAN;
         case MAIOR:
-            geraCodigo(NULL, "CMMA"); break;
+            geraCodigo(NULL, "CMMA"); return BOOLEAN;
         case MAIOR_IGUAL:
-            geraCodigo(NULL, "CMAG"); break;
+            geraCodigo(NULL, "CMAG"); return BOOLEAN;
         case MENOR:
-            geraCodigo(NULL, "CMME"); break;
+            geraCodigo(NULL, "CMME"); return BOOLEAN;
         case MENOR_IGUAL:
-            geraCodigo(NULL, "CMEG"); break;
+            geraCodigo(NULL, "CMEG"); return BOOLEAN;
         case MUL:
-            geraCodigo(NULL, "MULT"); break;
+            geraCodigo(NULL, "MULT"); return INTEGER;
         case DIV:
-            geraCodigo(NULL, "DIVI"); break;
+            geraCodigo(NULL, "DIVI"); return INTEGER;
         case AND:
-            geraCodigo(NULL, "CONJ"); break;
+            geraCodigo(NULL, "CONJ"); return INTEGER;
         case SOMA:
-            geraCodigo(NULL, "SOMA"); break;
+            geraCodigo(NULL, "SOMA"); return INTEGER;
         case SUB:
-            geraCodigo(NULL, "SUBT"); break;
+            geraCodigo(NULL, "SUBT"); return INTEGER;
         case OR:
-            geraCodigo(NULL, "DISJ"); break;
+            geraCodigo(NULL, "DISJ"); return INTEGER;
         default:
             assert(0);
     }
 
-    return expressao1;
+    fprintf(stderr, "INTERNAL ERROR (gen_operacao)");
+    assert(0);
+    return INVALID;
 }
 
 void gen_checa_sinal(bool ehNegativo){
