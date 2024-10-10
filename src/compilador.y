@@ -109,6 +109,7 @@ bloco: {}
        parte_declara_subrotinas
        {}
        comando_composto
+       {lex_level--;}
        ;
 
 

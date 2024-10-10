@@ -25,6 +25,18 @@ void insert_var_sybTable(Vec_Symbol *sybTable, char *ident, const int var_lex_le
     Vec_Symbol_push(sybTable, s);
 }
 
+
+void insert_proc_sybTable(Vec_Symbol &sybTable, char *ident, int proc_lex_level, const char *rotulo, int num_parameters){
+  Symbol s;
+  s.ident = ident;
+  s.category = CAT_PROC;
+  s.lex_level = proc_lex_level;
+  s.atributes.proc_attr.rotulo = rotulo;
+  s.atributes.proc_attr.num_parameters = num_parameters;
+  // tipo ainda desconhecido.
+  Vec_Symbol_push(sybTable, s);
+}
+
 // Retorna um ptr pro simbolo com o ident presente na tabela de simbolos
 Symbol *find_syb(Vec_Symbol *sybTable, const char *ident) {
     for (int i = 0; i < sybTable->size; i++) {

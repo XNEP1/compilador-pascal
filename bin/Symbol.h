@@ -21,10 +21,9 @@ typedef struct AtributeParameter {
 } AtributeParameter;
 
 typedef struct AtributeProcedure {
-    TypeID type; // Só é usado em funções. É INVALID in procedimentos.
-    const char *rotulo;
+    int label;
     int num_parameters;
-    // falta um vec de mecanismo de passagem dos parameters
+    // WIP
 } AtributeProcedure;
 
 typedef union Atributes {
@@ -48,6 +47,3 @@ Symbol *find_syb(Vec_Symbol *sybTable, const char *ident);
 
 // Aloca e insere um simbolo de variavel e seus atributos na tabela de simbolos
 void insert_var_sybTable(Vec_Symbol *sybTable, char *ident, int var_lex_level);
-
-// Aloca e insere um simbolo de nome de função/procedimento na tabela de simbolos
-void insert_proc_sybTable(Vec_Symbol &sybTable, char *ident, int proc_lex_level, const char *rotulo, int num_parameters);
