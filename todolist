@@ -1,0 +1,12 @@
+# Compilador Pascal -> Mepa
+
+### TODO list.
+Não é completa. São apenas coisas que eu quero lembrar para fazer logo.
+Objetivos a longo prazo não entram nessa lista.
+
+- [ ] Terminar geração de código MEPA dos procedimentos.
+- [ ] Reorganizar código C no Bison em funções separadas. Apenas para melhorar a visualização.
+- [ ] Definir um padrão e renomear os nomes de acordo. Atualmente existem nomes em ingles e outros em portugues. Algumas palavras são substituidas por siglas e em alguns casos há palavras com mais de uma sigla (ex: par\param).
+- [ ] Revisar e adicionar checagem de semantica (tipagem).
+- [ ] Alguns trechos são compilados, porem sua finalização não. Por exemplo, o compilador sabe alocar memoria, mas não sabe desalocar.
+- [X] Lista TODO criada. (Exemplo de task concluída)
