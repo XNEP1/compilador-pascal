@@ -22,7 +22,7 @@ TypeID is_type(const char* ident) {
     // if(strcmp(ident,"string") == 0)
     //     return STRING;
 
-    return 0;
+    return INVALID;
 }
 
 // Retorna quantidade de memoria gasta por um enum type.

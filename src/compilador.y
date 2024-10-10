@@ -16,9 +16,13 @@
 DEF_VEC(Vec_String, char*)
 IMPL_VEC(Vec_String, char*)
 
-int num_vars;
+
+int num_vars = 0; // Conta o numero de vars alocadas no nivel lexico atual
 int lex_level = -1;
 int num_rotulos = 0;
+
+// Use e depois devolva para 0
+int temp_counter_param = 0;
 
 // Só serve para armazenar temporariamente
 // e como meio de nomear e saber o que é cada coisa.
@@ -80,9 +84,11 @@ char *novo_rotulo();
 
 %type <tptr> tipo variavel
 %type <intV> lista_id_var // quantidade de vars
+%type <intV> parametros_formais lista_parametros_formais secao_parametros_formais lista_id_par // qnt de parametros
 %type <boolV> sinal // Se for True, consome o sinal e multiplica o termo do lado por -1.
 %type <typeID> expressao chamada_funcao
 %type <Vec_TypeID> lista_expressoes
+
 
 %nonassoc LOWER_THAN_ELSE
 %nonassoc ELSE
@@ -100,7 +106,7 @@ programa:    {
              lex_level++;
              }
              PROGRAM IDENT
-             ABRE_PARENTESES lista_idents FECHA_PARENTESES PONTO_E_VIRGULA
+             ABRE_PARENTESES lista_id_par FECHA_PARENTESES PONTO_E_VIRGULA
              bloco PONTO {geraCodigo (NULL, "PARA");}
 ;
 
@@ -111,7 +117,6 @@ bloco: {}
        comando_composto
        {lex_level--;}
        ;
-
 
 
 
@@ -128,11 +133,11 @@ declara_vars: declara_vars declara_var
 ;
 
 declara_var: 
-            { }
+            { num_vars = 0; }
             lista_id_var DOIS_PONTOS tipo
             { /* AMEM */
-                int varType = is_type($4);
-                if (!(varType)){
+                TypeID varType = is_type($4);
+                if (varType == INVALID){
                     fprintf(stderr, "Erro ao compilar (linha %d): \"%s\" não é um tipo válido.", nl, $4);
                     YYERROR;
                 }
@@ -158,18 +163,26 @@ tipo: IDENT {}
 
 lista_id_var: lista_id_var VIRGULA IDENT
             { /* insere �ltima vars na tabela de s�mbolos */ 
-                insert_var_sybTable(&sybTable, $3, lex_level); // tipo ainda desconhecido.
+                insert_var_sybTable(&sybTable, $3, lex_level, num_vars++); // tipo ainda desconhecido.
                 $$ = $1 + 1; 
             }
             | IDENT 
             { /* insere vars na tabela de s�mbolos */
-                insert_var_sybTable(&sybTable, $1, lex_level); // tipo ainda desconhecido.
+                insert_var_sybTable(&sybTable, $1, lex_level, num_vars++); // tipo ainda desconhecido.
                 $$ = 1;
             }
             ;
 
-lista_idents: lista_idents VIRGULA IDENT
-            | IDENT
+lista_id_par: lista_id_par VIRGULA IDENT
+            { // insere os ultimos
+                insert_par_sybTable(&sybTable, $3, lex_level, (-4-temp_counter_param++));
+                $$ = $1 + 1;
+            }
+            | IDENT {
+                // insere o primeiro parameter na tabela
+                insert_par_sybTable(&sybTable, $1, lex_level, (-4-temp_counter_param++));
+                $$ = 1;
+            }           
             ; 
 
 parte_declara_subrotinas:
@@ -177,24 +190,48 @@ parte_declara_subrotinas:
                         | parte_declara_subrotinas declaracao_function PONTO_E_VIRGULA
                         ;
 
-declaracao_procedimento: {lex_level++;} PROCEDURE IDENT parametros_formais PONTO_E_VIRGULA bloco
+declaracao_procedimento: {lex_level++;} PROCEDURE IDENT parametros_formais
+                        {
+                            char *rotulo = novo_rotulo();
+                            Symbol *proc_syb = insert_proc_sybTable(&sybTable, $3, lex_level, rotulo, $4);
+                             
+                            for(int i=1; i<=$4; i++){
+                                Symbol s=sybTable.data[sybTable.size - i];
+                                Vec_TypeID_push(&proc_syb->atributes.proc_attr.tipos_parametros, s.atributes.var_attr.type);
+                            }
+                            proc_syb->atributes.proc_attr.type = INVALID;
+                        }
+                        PONTO_E_VIRGULA bloco
                        ;
 
 declaracao_function: {lex_level++;} FUNCTION IDENT parametros_formais DOIS_PONTOS IDENT PONTO_E_VIRGULA bloco
                    ;
 
 
-parametros_formais: ABRE_PARENTESES lista_parametros_formais FECHA_PARENTESES
-                  ;
+parametros_formais: {temp_counter_param = 0;} ABRE_PARENTESES lista_parametros_formais FECHA_PARENTESES
+    {$$ = $3;} ;
 
 lista_parametros_formais: secao_parametros_formais
                         | lista_parametros_formais PONTO_E_VIRGULA secao_parametros_formais
                         ;
 
-secao_parametros_formais: VAR lista_idents DOIS_PONTOS IDENT
-                        | lista_idents DOIS_PONTOS IDENT
-                        | FUNCTION lista_idents DOIS_PONTOS IDENT
-                        | PROCEDURE lista_idents
+secao_parametros_formais: VAR lista_id_par DOIS_PONTOS IDENT 
+    {
+        int qnt_param = $2;
+        TypeID paramType = is_type($4);
+        if(paramType == INVALID){
+            fprintf(stderr, "Erro ao compilar (linha %d): \"%s\" não é um tipo válido.", nl, $4);
+            YYERROR;
+        }
+
+        for(int i=sybTable.size-qnt_param; i<sybTable.size; i++){ 
+            sybTable.data[i].atributes.param_attr.type = paramType;
+        }
+        $$ = qnt_param;
+    }
+                        | lista_id_par DOIS_PONTOS IDENT {$$+$1;}
+                        | FUNCTION lista_id_par DOIS_PONTOS IDENT {$$=$2;}
+                        | PROCEDURE lista_id_par {$$=$2;}
                         ;
 
 atribuicao: IDENT ATRIBUICAO expressao {gen_atribuicao($1, $3);}

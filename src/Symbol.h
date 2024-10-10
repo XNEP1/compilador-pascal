@@ -3,6 +3,7 @@
 #include "Types.h"
 #include "genericVec.h"
 
+
 enum categories {
     CAT_VAR,
     CAT_PAR,
@@ -24,6 +25,7 @@ typedef struct AtributeProcedure {
     TypeID type; // Só é usado em funções. É INVALID in procedimentos.
     const char *rotulo;
     int num_parameters;
+    Vec_TypeID tipos_parametros;
     // falta um vec de mecanismo de passagem dos parameters
 } AtributeProcedure;
 
@@ -47,7 +49,10 @@ DEF_VEC(Vec_Symbol, Symbol)
 Symbol *find_syb(Vec_Symbol *sybTable, const char *ident);
 
 // Aloca e insere um simbolo de variavel e seus atributos na tabela de simbolos
-void insert_var_sybTable(Vec_Symbol *sybTable, char *ident, int var_lex_level);
+Symbol *insert_var_sybTable(Vec_Symbol *sybTable, char *ident, int var_lex_level, int offset);
+
+// Aloca e insere um simbolo de parametro e seus atributos na tabela de simbolos
+Symbol *insert_par_sybTable(Vec_Symbol *sybTable, char *ident, int par_lex_level, int offset);
 
 // Aloca e insere um simbolo de nome de função/procedimento na tabela de simbolos
-void insert_proc_sybTable(Vec_Symbol &sybTable, char *ident, int proc_lex_level, const char *rotulo, int num_parameters);
+Symbol *insert_proc_sybTable(Vec_Symbol *sybTable, char *ident, int proc_lex_level, const char *rotulo, int num_parameters);

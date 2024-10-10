@@ -45,7 +45,7 @@
 extern int yydebug;
 #endif
 /* "%code requires" blocks.  */
-#line 48 "./src/compilador.y"
+#line 52 "./src/compilador.y"
 
 #include "Types.h"
 
@@ -125,7 +125,7 @@ extern int yydebug;
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 union YYSTYPE
 {
-#line 53 "./src/compilador.y"
+#line 57 "./src/compilador.y"
 
   int intV;
   double doubleV;
