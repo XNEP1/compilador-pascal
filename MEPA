@@ -7,7 +7,7 @@ R0: ENPR 1
      CRCT 10
      ARMZ 1,0
      CRVL 1,0
-     CRVL 1,-4
+     CRVL 1,-6
      SOMA
      ARMZ 1,1
      DMEM 2

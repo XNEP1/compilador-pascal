@@ -13,10 +13,6 @@
 #include "compilador.h"
 #include "Symbol.h"
 
-DEF_VEC(Vec_String, char*)
-IMPL_VEC(Vec_String, char*)
-
-
 int num_vars = 0; // Conta o numero de vars alocadas no nivel lexico atual
 int lex_level = -1;
 int num_rotulos = 0;
@@ -37,21 +33,32 @@ char *rotulo_else;
 char* mepaCommand = NULL;
 
 Vec_Symbol sybTable;
-Vec_String rotulosStack;
 
 // Prototipos
 TypeID gen_carrega_var(const char *ident);
 TypeID gen_carrega_numero(const int v);
-bool gen_atribuicao(const char *ident, TypeID expressaoTipo);
+void gen_atribuicao(const char *ident, TypeID expressaoTipo);
 TypeID gen_operacao(TypeID expressao1, int oper, TypeID expressao2);
 void gen_checa_sinal(bool ehNegativo);
 char *novo_rotulo();
 int set_param_types(int qnt_param, char *typeIdent);
+void gen_amem(int qnt_vars, char *typeIdent);
+void gen_if_then(TypeID expressionType);
+void gen_if_without_else();
+void gen_if_with_else_part1();
+void gen_if_with_else_part2();
+void gen_while_part1();
+void gen_while_part2(TypeID expressionType);
+void gen_while_part3();
+void gen_declara_procedimento_entrar(char *proc_name, int qnt_param);
+void gen_declara_procedimento_retorna(int qnt_param);
+void gen_chama_procedimento(char *proc_name, Vec_TypeID expressionType_list);
 
 %}
 
 %code requires {
 #include "Types.h"
+DEF_VEC(Vec_String, char*)
 }
 
 // YYSTYPE union
@@ -61,7 +68,8 @@ int set_param_types(int qnt_param, char *typeIdent);
   char* tptr; 
   bool boolV;
   TypeID typeID;
-  Vec_TypeID vec_type;
+  Vec_TypeID vecType;
+  Vec_String vecString;
   yytoken_kind_t tokenType;
 }
 
@@ -84,12 +92,13 @@ int set_param_types(int qnt_param, char *typeIdent);
 %token <tptr>IDENT ATRIBUICAO
 
 
-%type <tptr> tipo variavel
+%type <tptr> variavel
 %type <intV> lista_id_var // quantidade de vars
 %type <intV> parametros_formais lista_parametros_formais secao_parametros_formais lista_id_par // qnt de parametros
+%type <vecString> montando_lista_id_par// armazena os indentificadores para inserir na tabela de simbolo depois na ordem correta
 %type <boolV> sinal // Se for True, consome o sinal e multiplica o termo do lado por -1.
 %type <typeID> expressao chamada_funcao
-%type <vec_type> lista_expressoes
+%type <vecType> lista_expressoes
 %type <intV> declara_var declara_vars var parte_declara_vars parte_declara_subrotinas
 
 %nonassoc LOWER_THAN_ELSE
@@ -146,34 +155,10 @@ var: VAR declara_vars {$$ = $2;}
 
 declara_vars: declara_vars declara_var {$$ = $1 + $2;}
             | declara_var {$$ = $1;}
-;
+            ;
 
-declara_var:{ num_vars = 0; }
-            lista_id_var DOIS_PONTOS tipo
-            { /* AMEM */
-                TypeID varType = is_type($4);
-                if (varType == INVALID){
-                    fprintf(stderr, "Erro ao compilar (linha %d): \"%s\" não é um tipo válido.", nl, $4);
-                    YYERROR;
-                }
-                
-                int qnt_vars = $2;
-
-                // atribui o tipo as variaveis alocadas
-                for(int i=sybTable.size-qnt_vars; i<sybTable.size; i++){ 
-                    sybTable.data[i].atributes.var_attr.type = varType;
-                }
-
-                int amountToAlloc = type_size(varType) * qnt_vars;
-                asprintf(&mepaCommand, "AMEM %d", amountToAlloc);
-                geraCodigo(NULL, mepaCommand);
-                free(mepaCommand);
-            }
-            PONTO_E_VIRGULA {$$ = $2;}
-;
-
-tipo: IDENT {}
-;
+declara_var: lista_id_var DOIS_PONTOS IDENT {gen_amem($1, $3);} PONTO_E_VIRGULA {$$ = $1;}
+           ;
 
 lista_id_var: lista_id_var VIRGULA IDENT
             { /* insere �ltima vars na tabela de s�mbolos */ 
@@ -187,15 +172,24 @@ lista_id_var: lista_id_var VIRGULA IDENT
             }
             ;
 
-lista_id_par: lista_id_par VIRGULA IDENT
+lista_id_par: montando_lista_id_par 
+            {
+                $$ = $1.size;
+                int i = 0;
+                while($1.size > 0)
+                    insert_par_sybTable(&sybTable, Vec_String_pop(&$1), lex_level, -4-(i++));
+            }
+            ;
+
+montando_lista_id_par: montando_lista_id_par VIRGULA IDENT
             { // insere os ultimos
-                $$ = $1 + 1;
-                insert_par_sybTable(&sybTable, $3, lex_level, ($$-5));
+                $$ = $1;
+                Vec_String_push(&$$, $3);
             }
             | IDENT {
                 // insere o primeiro parameter na tabela
-                $$ = 1;
-                insert_par_sybTable(&sybTable, $1, lex_level, ($$-5));
+                $$ = Vec_String_new(10);
+                Vec_String_push(&$$, $1);
             }           
             ; 
 
@@ -204,45 +198,8 @@ parte_declara_subrotinas: {$$ = 0;}
                         | parte_declara_subrotinas declaracao_function PONTO_E_VIRGULA {$$ = $1 + 1;}
                         ;
 
-declaracao_procedimento: {lex_level++;} PROCEDURE IDENT parametros_formais
-                        {
-                            char *rotulo = novo_rotulo();
-                            Symbol *proc_syb = insert_proc_sybTable(&sybTable, $3, lex_level, rotulo, $4);
-                             
-                            for(int i=2; i<=$4+1; i++){
-                                Symbol s=sybTable.data[sybTable.size - i];
-                                Vec_TypeID_push(&proc_syb->atributes.proc_attr.tipos_parametros, s.atributes.param_attr.type);
-                            }
-                            proc_syb->atributes.proc_attr.type = INVALID;
-
-char *rotulo_skip_proc = novo_rotulo();
-Vec_String_push(&rotulosStack, rotulo_skip_proc);
-asprintf(&mepaCommand, "DSVS %s", rotulo_skip_proc);
-geraCodigo(NULL, mepaCommand);
-free(mepaCommand);   
-
-asprintf(&mepaCommand, "ENPR %d", lex_level);
-geraCodigo(rotulo, mepaCommand);
-free(mepaCommand);   
-}
-                        PONTO_E_VIRGULA bloco 
-{
-int qnt_param = $4;
-asprintf(&mepaCommand, "RTPR %d,%d", lex_level, qnt_param);
-geraCodigo(rotulo, mepaCommand);
-free(mepaCommand);   
-lex_level--;
-
-char *rotulo_skip_proc = Vec_String_pop(&rotulosStack);
-geraCodigo(rotulo_skip_proc, "NADA");
-
-Symbol proc_syb = Vec_Symbol_pop(&sybTable);
-for(int i=0; i<qnt_param; i++){
-    Symbol s = Vec_Symbol_pop(&sybTable);
-    printf("Drop SYMB: param %s\n", s.ident);
-}
-Vec_Symbol_push(&sybTable, proc_syb);
-}
+declaracao_procedimento: {lex_level++;} PROCEDURE IDENT parametros_formais {gen_declara_procedimento_entrar($3, $4);}
+                         PONTO_E_VIRGULA bloco {gen_declara_procedimento_retorna($4); lex_level--;}
                        ;
 
 declaracao_function: {lex_level++;} FUNCTION IDENT parametros_formais DOIS_PONTOS IDENT PONTO_E_VIRGULA bloco
@@ -302,32 +259,8 @@ variavel: IDENT {$$ = $1;}
         | IDENT ABRE_COLCHETES lista_expressoes FECHA_COLCHETES {$$ = $1;}
         ;
 
-chamada_procedimento: IDENT ABRE_PARENTESES lista_expressoes FECHA_PARENTESES 
-{
-    Symbol *s = find_syb(&sybTable, $1);
-    if(s == NULL || s->category != CAT_PROC){
-        fprintf(stderr, "Erro ao compilar (linha %d): Procedimento %s não foi declarado.", nl, $1);
-        YYERROR;
-    }
-
-    int qnt_param = $3.size;
-    int proc_num_param = s->atributes.proc_attr.num_parameters;
-    if(qnt_param != proc_num_param){
-        fprintf(stderr, "Erro ao compilar (linha %d): O procedimento %s precisa de %d parametros (%d foram passados).", nl, $1, proc_num_param, qnt_param);
-        YYERROR;
-    }
-    for(int i=0; i<qnt_param; i++){
-        if($3.data[i] != s->atributes.proc_attr.tipos_parametros.data[i]){
-            fprintf(stderr, "Erro ao compilar (linha %d): o %do parametro do procedimento %s deveria ser do tipo %s (é do tipo %s).\n", nl, i+1, s->ident, type_to_str(s->atributes.proc_attr.tipos_parametros.data[i]),type_to_str($3.data[i]));
-            YYERROR;
-        }
-    }
-
-asprintf(&mepaCommand, "CHPR %s,%d", s->atributes.proc_attr.rotulo,lex_level);
-geraCodigo(NULL, mepaCommand);
-free(mepaCommand);
-} 
-                    | IDENT {}
+chamada_procedimento: IDENT ABRE_PARENTESES lista_expressoes FECHA_PARENTESES {gen_chama_procedimento($1, $3);} 
+                    | IDENT {gen_chama_procedimento($1,Vec_TypeID_new(0));}
                     ;
 
 
@@ -343,84 +276,17 @@ chamada_funcao: IDENT ABRE_PARENTESES lista_expressoes FECHA_PARENTESES
 desvio: GOTO NUMBER;
 
 
-if_then: IF expressao 
-{
-    if($2 != BOOLEAN){
-        fprintf(stderr, "Erro ao compilar (linha %d): Expressão não é do tipo booleano.", nl);
-        YYERROR;
-    }
+if_then: IF expressao {gen_if_then($2);} THEN comando_sem_rotulo 
+       ;
 
-    rotulo = novo_rotulo();
-    Vec_String_push(&rotulosStack, rotulo);
-    asprintf(&mepaCommand, "DSVF %s", rotulo);
-    geraCodigo(NULL, mepaCommand);
-    free(mepaCommand);
-}
-THEN comando_sem_rotulo 
-;
-
-comando_condicional: if_then %prec LOWER_THAN_ELSE
-                    {
-                        rotulo_endif  = Vec_String_pop(&rotulosStack);
-                        geraCodigo(rotulo_endif, "NADA");
-                        free(rotulo_endif);
-                    }
-                   | if_then ELSE 
-                   {
-
-                        rotulo_endif  = novo_rotulo();
-                        asprintf(&mepaCommand, "DSVS %s", rotulo_endif);
-                        geraCodigo(NULL, mepaCommand);
-                        free(mepaCommand);
-
-                        rotulo_else = Vec_String_pop(&rotulosStack);
-                        geraCodigo(rotulo_else, "NADA");
-                        free(rotulo_else);
-
-                        Vec_String_push(&rotulosStack, rotulo_endif);
-                   } 
-                   comando_sem_rotulo 
-                   {
-                        rotulo_endif = Vec_String_pop(&rotulosStack);
-                        geraCodigo(rotulo_endif, "NADA");
-                        free(rotulo_endif);
-                   }
+comando_condicional: if_then %prec LOWER_THAN_ELSE {gen_if_without_else();}
+                   | if_then ELSE {gen_if_with_else_part1();} comando_sem_rotulo {gen_if_with_else_part2();}
                    ;
 
-comando_repititivo: WHILE
-{
-    rotulo_while = novo_rotulo();
-    Vec_String_push(&rotulosStack, rotulo_while);
-    geraCodigo(rotulo_while, "NADA");
-}
-expressao DO 
-{
-    if($3 != BOOLEAN){
-        fprintf(stderr, "Erro ao compilar (linha %d): Expressão não é do tipo booleano.", nl);
-        YYERROR;
-    }
-
-    rotulo_do = novo_rotulo();
-    Vec_String_push(&rotulosStack, rotulo_do);
-    asprintf(&mepaCommand, "DSVF %s", rotulo_do);
-    geraCodigo(NULL, mepaCommand);
-    free(mepaCommand);
-} 
-comando_sem_rotulo 
-{
-    rotulo_do = Vec_String_pop(&rotulosStack);
-    rotulo_while = Vec_String_pop(&rotulosStack);
-    asprintf(&mepaCommand, "DSVS %s", rotulo_while);
-    geraCodigo(NULL, mepaCommand);
-    free(mepaCommand);
-
-    geraCodigo(rotulo_do, "NADA");
-    free(rotulo_do);
-    free(rotulo_while);
-}
+comando_repititivo: WHILE {gen_while_part1();} expressao DO {gen_while_part2($3);} comando_sem_rotulo {gen_while_part3();}
                   ;
 
-comando_composto: {} T_BEGIN comandos T_END {}
+comando_composto: T_BEGIN comandos T_END
                 ;
 
 comandos: comando
@@ -440,6 +306,17 @@ comando_sem_rotulo: atribuicao
                   ;
 
 %%
+
+// ===============
+// Segundo bloco de variaveis globais
+// Esse é apos o compilador.tab.h
+// culpa do bison...
+
+IMPL_VEC(Vec_String, char*)
+
+Vec_String rotulosStack;
+
+// =========================
 
 TypeID gen_carrega_var(const char *ident){
     Symbol* s;
@@ -474,12 +351,12 @@ TypeID gen_carrega_numero(const int v){
     return INTEGER;
 }
 
-bool gen_atribuicao(const char *ident, TypeID expressaoTipo){
+void gen_atribuicao(const char *ident, TypeID expressaoTipo){
     // busca na tabela de simbolos e armazena o que estiver no topo da pilha (de execução do MEPA).
     Symbol* s = find_syb(&sybTable, ident);
     if(s == NULL){
         fprintf(stderr, "Erro ao compilar (linha %d): \"%s\" não definido.", nl, ident);
-        return false;
+        exit(-1);
     }
     else if(s->category == CAT_VAR)
         asprintf(&mepaCommand, "ARMZ %d,%d", s->lex_level, s->atributes.var_attr.offset);
@@ -489,17 +366,16 @@ bool gen_atribuicao(const char *ident, TypeID expressaoTipo){
         assert(0); // WIP: Ainda não sei oq fazer caso alguem tente atribuir algo ao simbolo de uma função. Pascal suporta isso?
     else{
         fprintf(stderr, "Erro ao compilar (linha %d): \"%s\" não é um simbolo atribuivel.", nl, ident);
-        return false;
+        exit(-1);
     }
     geraCodigo(NULL, mepaCommand);
     free(mepaCommand);
-    return true;
 }
 
 TypeID gen_operacao(TypeID expressao1, int oper, TypeID expressao2){
     if(expressao1 != expressao2){
         fprintf(stderr, "Erro ao compilar (linha %d): %s e %s não são compatíveis em uma expressão.", nl, type_to_str(expressao1), type_to_str(expressao2));
-        return INVALID;
+        exit(-1);
     }
 
     switch(oper){
@@ -528,7 +404,7 @@ TypeID gen_operacao(TypeID expressao1, int oper, TypeID expressao2){
         case OR:
             geraCodigo(NULL, "DISJ"); return INTEGER;
         default:
-            assert(0);
+            break;
     }
 
     fprintf(stderr, "INTERNAL ERROR (gen_operacao)");
@@ -543,11 +419,159 @@ void gen_checa_sinal(bool ehNegativo){
     }
 }
 
+void gen_amem(int qnt_vars, char *typeIdent){
+    TypeID varType = is_type(typeIdent);
+    if (varType == INVALID){
+        fprintf(stderr, "Erro ao compilar (linha %d): \"%s\" não é um tipo válido.", nl, typeIdent);
+        exit(-1);
+    }
+
+    // atribui o tipo as variaveis alocadas
+    for(int i=sybTable.size-qnt_vars; i<sybTable.size; i++){ 
+        sybTable.data[i].atributes.var_attr.type = varType;
+    }
+
+    int amountToAlloc = type_size(varType) * qnt_vars;
+    asprintf(&mepaCommand, "AMEM %d", amountToAlloc);
+    geraCodigo(NULL, mepaCommand);
+    free(mepaCommand);
+}
+
+void gen_if_then(TypeID expressionType){
+    if(expressionType != BOOLEAN){
+        fprintf(stderr, "Erro ao compilar (linha %d): Expressão não é do tipo booleano.", nl);
+        exit(-1);
+    }
+
+    rotulo = novo_rotulo();
+    Vec_String_push(&rotulosStack, rotulo);
+    asprintf(&mepaCommand, "DSVF %s", rotulo);
+    geraCodigo(NULL, mepaCommand);
+    free(mepaCommand);
+}
+
+void gen_if_without_else(){
+    rotulo_endif  = Vec_String_pop(&rotulosStack);
+    geraCodigo(rotulo_endif, "NADA");
+    free(rotulo_endif);
+}
+
+void gen_if_with_else_part1(){
+    rotulo_endif  = novo_rotulo();
+    asprintf(&mepaCommand, "DSVS %s", rotulo_endif);
+    geraCodigo(NULL, mepaCommand);
+    free(mepaCommand);
+
+    rotulo_else = Vec_String_pop(&rotulosStack);
+    geraCodigo(rotulo_else, "NADA");
+    free(rotulo_else);
+
+    Vec_String_push(&rotulosStack, rotulo_endif);
+}
+
+void gen_if_with_else_part2(){
+    rotulo_endif = Vec_String_pop(&rotulosStack);
+    geraCodigo(rotulo_endif, "NADA");
+    free(rotulo_endif);
+}
+
+void gen_while_part1(){
+    rotulo_while = novo_rotulo();
+    Vec_String_push(&rotulosStack, rotulo_while);
+    geraCodigo(rotulo_while, "NADA");
+}
+
+void gen_while_part2(TypeID expressionType){
+    if(expressionType != BOOLEAN){
+        fprintf(stderr, "Erro ao compilar (linha %d): Expressão não é do tipo booleano.", nl);
+        exit(-1);
+    }
+    rotulo_do = novo_rotulo();
+    Vec_String_push(&rotulosStack, rotulo_do);
+    asprintf(&mepaCommand, "DSVF %s", rotulo_do);
+    geraCodigo(NULL, mepaCommand);
+    free(mepaCommand);
+}
+
+void gen_while_part3(){
+    rotulo_do = Vec_String_pop(&rotulosStack);
+    rotulo_while = Vec_String_pop(&rotulosStack);
+    asprintf(&mepaCommand, "DSVS %s", rotulo_while);
+    geraCodigo(NULL, mepaCommand);
+    free(mepaCommand);
+
+    geraCodigo(rotulo_do, "NADA");
+    free(rotulo_do);
+    free(rotulo_while);
+}
+
+void gen_declara_procedimento_entrar(char *proc_name, int qnt_param){
+    char *rotulo = novo_rotulo();
+    Symbol *proc_syb = insert_proc_sybTable(&sybTable, proc_name, lex_level, rotulo, qnt_param);
+        
+    for(int i=2; i<=qnt_param+1; i++){
+        Symbol s=sybTable.data[sybTable.size - i];
+        Vec_TypeID_push(&proc_syb->atributes.proc_attr.tipos_parametros, s.atributes.param_attr.type);
+    }
+    proc_syb->atributes.proc_attr.type = INVALID;
+
+    char *rotulo_skip_proc = novo_rotulo();
+    Vec_String_push(&rotulosStack, rotulo_skip_proc);
+    asprintf(&mepaCommand, "DSVS %s", rotulo_skip_proc);
+    geraCodigo(NULL, mepaCommand);
+    free(mepaCommand);   
+
+    asprintf(&mepaCommand, "ENPR %d", lex_level);
+    geraCodigo(rotulo, mepaCommand);
+    free(mepaCommand);   
+}
+
+void gen_declara_procedimento_retorna(int qnt_param){
+    asprintf(&mepaCommand, "RTPR %d,%d", lex_level, qnt_param);
+    geraCodigo(rotulo, mepaCommand);
+    free(mepaCommand);
+
+    char *rotulo_skip_proc = Vec_String_pop(&rotulosStack);
+    geraCodigo(rotulo_skip_proc, "NADA");
+
+    Symbol proc_syb = Vec_Symbol_pop(&sybTable);
+    for(int i=0; i<qnt_param; i++){
+        Symbol s = Vec_Symbol_pop(&sybTable);
+        printf("Drop SYMB: param %s\n", s.ident);
+    }
+    Vec_Symbol_push(&sybTable, proc_syb);
+}
+
+void gen_chama_procedimento(char *proc_name, Vec_TypeID expressionType_list){
+    Symbol *s = find_syb(&sybTable, proc_name);
+    if(s == NULL || s->category != CAT_PROC){
+        fprintf(stderr, "Erro ao compilar (linha %d): Procedimento %s não foi declarado.", nl, proc_name);
+        exit(-1);
+    }
+
+    int qnt_param = expressionType_list.size;
+    int proc_num_param = s->atributes.proc_attr.num_parameters;
+    if(qnt_param != proc_num_param){
+        fprintf(stderr, "Erro ao compilar (linha %d): O procedimento %s precisa de %d parametros (%d foram passados).", nl, proc_name, proc_num_param, qnt_param);
+        exit(-1);
+    }
+    for(int i=0; i<qnt_param; i++){
+        if(expressionType_list.data[i] != s->atributes.proc_attr.tipos_parametros.data[i]){
+            fprintf(stderr, "Erro ao compilar (linha %d): o %do parametro do procedimento %s deveria ser do tipo %s (é do tipo %s).\n", nl, i+1, s->ident, type_to_str(s->atributes.proc_attr.tipos_parametros.data[i]),type_to_str(expressionType_list.data[i]));
+            exit(-1);
+        }
+    }
+
+    asprintf(&mepaCommand, "CHPR %s,%d", s->atributes.proc_attr.rotulo,lex_level);
+    geraCodigo(NULL, mepaCommand);
+    free(mepaCommand);
+}
+
 int set_param_types(int qnt_param, char *typeIdent){
     TypeID paramType = is_type(typeIdent);
     if(paramType == INVALID){
         fprintf(stderr, "Erro ao compilar (linha %d): \"%s\" não é um tipo válido.", nl, typeIdent);
-        assert(0);
+        exit(-1);
     }
     
     for(int i=sybTable.size-qnt_param; i<sybTable.size; i++){ 

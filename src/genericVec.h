@@ -20,7 +20,7 @@
     void VEC_T##_destroy(VEC_T *vec);      \
     void VEC_T##_push(VEC_T *vec, T data); \
     T VEC_T##_pop(VEC_T *vec);             \
-    T VEC_T##_top(VEC_T *vec);
+    T VEC_T##_top(VEC_T *vec);             
 
 #define IMPL_VEC(VEC_T, T)                                      \
     VEC_T VEC_T##_new(int capacity) {                           \
