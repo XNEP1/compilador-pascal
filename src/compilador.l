@@ -121,6 +121,18 @@ else { simbolo = simb_else;
           return ELSE;
 }
 
+procedure { simbolo = simb_procedure;
+          strncpy (token, yytext, TAM_TOKEN);
+          IMPRIME(" procedure   ");
+          return PROCEDURE;
+}
+
+function { simbolo = simb_function;
+          strncpy (token, yytext, TAM_TOKEN);
+          IMPRIME(" function   ");
+          return FUNCTION;
+}
+
 := { simbolo = simb_atribuicao;
           strncpy (token, yytext, TAM_TOKEN);
           IMPRIME(" atribuicao  ");

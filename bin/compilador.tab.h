@@ -45,7 +45,7 @@
 extern int yydebug;
 #endif
 /* "%code requires" blocks.  */
-#line 52 "./src/compilador.y"
+#line 53 "./src/compilador.y"
 
 #include "Types.h"
 
@@ -125,16 +125,17 @@ extern int yydebug;
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 union YYSTYPE
 {
-#line 57 "./src/compilador.y"
+#line 58 "./src/compilador.y"
 
   int intV;
   double doubleV;
   char* tptr; 
   bool boolV;
-  TypeID typeID; 
+  TypeID typeID;
+  Vec_TypeID vec_type;
   yytoken_kind_t tokenType;
 
-#line 138 "./bin/compilador.tab.h"
+#line 139 "./bin/compilador.tab.h"
 
 };
 typedef union YYSTYPE YYSTYPE;

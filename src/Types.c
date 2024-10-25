@@ -2,6 +2,7 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <stdio.h>
 
 #include "genericVec.h"
 
@@ -44,6 +45,7 @@ const char* type_to_str(TypeID type) {
     case BOOLEAN:
         return "Boolean";
     default:
+        fprintf(stderr, "ERROR: type %d\n", type);
         assert(0);
     }
 }

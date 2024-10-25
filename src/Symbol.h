@@ -5,9 +5,9 @@
 
 
 enum categories {
-    CAT_VAR,
-    CAT_PAR,
-    CAT_PROC,
+    CAT_VAR  = 0,
+    CAT_PAR  = 1,
+    CAT_PROC = 2,
 };
 
 typedef struct AtributeVar {

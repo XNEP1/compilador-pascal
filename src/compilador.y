@@ -46,6 +46,7 @@ bool gen_atribuicao(const char *ident, TypeID expressaoTipo);
 TypeID gen_operacao(TypeID expressao1, int oper, TypeID expressao2);
 void gen_checa_sinal(bool ehNegativo);
 char *novo_rotulo();
+int set_param_types(int qnt_param, char *typeIdent);
 
 %}
 
@@ -59,7 +60,8 @@ char *novo_rotulo();
   double doubleV;
   char* tptr; 
   bool boolV;
-  TypeID typeID; 
+  TypeID typeID;
+  Vec_TypeID vec_type;
   yytoken_kind_t tokenType;
 }
 
@@ -87,8 +89,8 @@ char *novo_rotulo();
 %type <intV> parametros_formais lista_parametros_formais secao_parametros_formais lista_id_par // qnt de parametros
 %type <boolV> sinal // Se for True, consome o sinal e multiplica o termo do lado por -1.
 %type <typeID> expressao chamada_funcao
-%type <Vec_TypeID> lista_expressoes
-
+%type <vec_type> lista_expressoes
+%type <intV> declara_var declara_vars var parte_declara_vars parte_declara_subrotinas
 
 %nonassoc LOWER_THAN_ELSE
 %nonassoc ELSE
@@ -110,30 +112,43 @@ programa:    {
              bloco PONTO {geraCodigo (NULL, "PARA");}
 ;
 
-bloco: {}
-       parte_declara_vars
+bloco: parte_declara_vars
        parte_declara_subrotinas
        {}
        comando_composto
-       {lex_level--;}
-       ;
+{
+    int qnt_mems = $1;
+    if(qnt_mems > 0){
+        asprintf(&mepaCommand, "DMEM %d", qnt_mems);
+        geraCodigo(rotulo, mepaCommand);
+        free(mepaCommand);
+    }
+    for(int i=0; i<$2; i++){
+        Symbol s = Vec_Symbol_pop(&sybTable);
+        printf("DROP SYMB: subrotina %s\n", s.ident);
+    }
+    for(int i=0; i<$1; i++){
+        Symbol s = Vec_Symbol_pop(&sybTable);
+        printf("DROP SYMB: var %s\n", s.ident);
+    }
+}   
+    ;
 
 
 
-parte_declara_vars:  var
+parte_declara_vars:  var {$$ = $1;}
 ;
 
 
-var: {} VAR declara_vars
-   |
+var: VAR declara_vars {$$ = $2;}
+   | {$$ = 0;}
    ;
 
-declara_vars: declara_vars declara_var
-            | declara_var
+declara_vars: declara_vars declara_var {$$ = $1 + $2;}
+            | declara_var {$$ = $1;}
 ;
 
-declara_var: 
-            { num_vars = 0; }
+declara_var:{ num_vars = 0; }
             lista_id_var DOIS_PONTOS tipo
             { /* AMEM */
                 TypeID varType = is_type($4);
@@ -153,9 +168,8 @@ declara_var:
                 asprintf(&mepaCommand, "AMEM %d", amountToAlloc);
                 geraCodigo(NULL, mepaCommand);
                 free(mepaCommand);
-
             }
-            PONTO_E_VIRGULA
+            PONTO_E_VIRGULA {$$ = $2;}
 ;
 
 tipo: IDENT {}
@@ -163,31 +177,31 @@ tipo: IDENT {}
 
 lista_id_var: lista_id_var VIRGULA IDENT
             { /* insere �ltima vars na tabela de s�mbolos */ 
-                insert_var_sybTable(&sybTable, $3, lex_level, num_vars++); // tipo ainda desconhecido.
-                $$ = $1 + 1; 
+                $$ = $1 + 1;
+                insert_var_sybTable(&sybTable, $3, lex_level, $$-1); // tipo ainda desconhecido. 
             }
             | IDENT 
             { /* insere vars na tabela de s�mbolos */
-                insert_var_sybTable(&sybTable, $1, lex_level, num_vars++); // tipo ainda desconhecido.
                 $$ = 1;
+                insert_var_sybTable(&sybTable, $1, lex_level, $$-1); // tipo ainda desconhecido.
             }
             ;
 
 lista_id_par: lista_id_par VIRGULA IDENT
             { // insere os ultimos
-                insert_par_sybTable(&sybTable, $3, lex_level, (-4-temp_counter_param++));
                 $$ = $1 + 1;
+                insert_par_sybTable(&sybTable, $3, lex_level, ($$-5));
             }
             | IDENT {
                 // insere o primeiro parameter na tabela
-                insert_par_sybTable(&sybTable, $1, lex_level, (-4-temp_counter_param++));
                 $$ = 1;
+                insert_par_sybTable(&sybTable, $1, lex_level, ($$-5));
             }           
             ; 
 
-parte_declara_subrotinas:
-                        | parte_declara_subrotinas declaracao_procedimento PONTO_E_VIRGULA
-                        | parte_declara_subrotinas declaracao_function PONTO_E_VIRGULA
+parte_declara_subrotinas: {$$ = 0;}
+                        | parte_declara_subrotinas declaracao_procedimento PONTO_E_VIRGULA {$$ = $1 + 1;}
+                        | parte_declara_subrotinas declaracao_function PONTO_E_VIRGULA {$$ = $1 + 1;}
                         ;
 
 declaracao_procedimento: {lex_level++;} PROCEDURE IDENT parametros_formais
@@ -195,50 +209,63 @@ declaracao_procedimento: {lex_level++;} PROCEDURE IDENT parametros_formais
                             char *rotulo = novo_rotulo();
                             Symbol *proc_syb = insert_proc_sybTable(&sybTable, $3, lex_level, rotulo, $4);
                              
-                            for(int i=1; i<=$4; i++){
+                            for(int i=2; i<=$4+1; i++){
                                 Symbol s=sybTable.data[sybTable.size - i];
-                                Vec_TypeID_push(&proc_syb->atributes.proc_attr.tipos_parametros, s.atributes.var_attr.type);
+                                Vec_TypeID_push(&proc_syb->atributes.proc_attr.tipos_parametros, s.atributes.param_attr.type);
                             }
                             proc_syb->atributes.proc_attr.type = INVALID;
-                        }
-                        PONTO_E_VIRGULA bloco
+
+char *rotulo_skip_proc = novo_rotulo();
+Vec_String_push(&rotulosStack, rotulo_skip_proc);
+asprintf(&mepaCommand, "DSVS %s", rotulo_skip_proc);
+geraCodigo(NULL, mepaCommand);
+free(mepaCommand);   
+
+asprintf(&mepaCommand, "ENPR %d", lex_level);
+geraCodigo(rotulo, mepaCommand);
+free(mepaCommand);   
+}
+                        PONTO_E_VIRGULA bloco 
+{
+int qnt_param = $4;
+asprintf(&mepaCommand, "RTPR %d,%d", lex_level, qnt_param);
+geraCodigo(rotulo, mepaCommand);
+free(mepaCommand);   
+lex_level--;
+
+char *rotulo_skip_proc = Vec_String_pop(&rotulosStack);
+geraCodigo(rotulo_skip_proc, "NADA");
+
+Symbol proc_syb = Vec_Symbol_pop(&sybTable);
+for(int i=0; i<qnt_param; i++){
+    Symbol s = Vec_Symbol_pop(&sybTable);
+    printf("Drop SYMB: param %s\n", s.ident);
+}
+Vec_Symbol_push(&sybTable, proc_syb);
+}
                        ;
 
 declaracao_function: {lex_level++;} FUNCTION IDENT parametros_formais DOIS_PONTOS IDENT PONTO_E_VIRGULA bloco
                    ;
 
 
-parametros_formais: {temp_counter_param = 0;} ABRE_PARENTESES lista_parametros_formais FECHA_PARENTESES
-    {$$ = $3;} ;
+parametros_formais: {temp_counter_param = 0;} ABRE_PARENTESES lista_parametros_formais FECHA_PARENTESES {$$ = $3;} ;
 
 lista_parametros_formais: secao_parametros_formais
                         | lista_parametros_formais PONTO_E_VIRGULA secao_parametros_formais
                         ;
 
-secao_parametros_formais: VAR lista_id_par DOIS_PONTOS IDENT 
-    {
-        int qnt_param = $2;
-        TypeID paramType = is_type($4);
-        if(paramType == INVALID){
-            fprintf(stderr, "Erro ao compilar (linha %d): \"%s\" não é um tipo válido.", nl, $4);
-            YYERROR;
-        }
-
-        for(int i=sybTable.size-qnt_param; i<sybTable.size; i++){ 
-            sybTable.data[i].atributes.param_attr.type = paramType;
-        }
-        $$ = qnt_param;
-    }
-                        | lista_id_par DOIS_PONTOS IDENT {$$+$1;}
-                        | FUNCTION lista_id_par DOIS_PONTOS IDENT {$$=$2;}
-                        | PROCEDURE lista_id_par {$$=$2;}
+secao_parametros_formais: VAR lista_id_par DOIS_PONTOS IDENT {$$ = set_param_types($2, $4);}
+                        | lista_id_par DOIS_PONTOS IDENT {$$ = set_param_types($1, $3);} 
+                        | FUNCTION lista_id_par DOIS_PONTOS IDENT {$$ = set_param_types($2, $4);}
+                        | PROCEDURE lista_id_par {$$ = $2;}
                         ;
 
 atribuicao: IDENT ATRIBUICAO expressao {gen_atribuicao($1, $3);}
           ;
 
-lista_expressoes: expressao
-                | lista_expressoes VIRGULA expressao
+lista_expressoes: expressao {$$ = Vec_TypeID_new(10); Vec_TypeID_push(&$$, $1);}
+                | lista_expressoes VIRGULA expressao {Vec_TypeID_push(&$$, $3);}
                 ;
 
 expressao: ABRE_PARENTESES expressao FECHA_PARENTESES {$$ = $2;} %prec EXPRESSAO_PREC
@@ -276,6 +303,30 @@ variavel: IDENT {$$ = $1;}
         ;
 
 chamada_procedimento: IDENT ABRE_PARENTESES lista_expressoes FECHA_PARENTESES 
+{
+    Symbol *s = find_syb(&sybTable, $1);
+    if(s == NULL || s->category != CAT_PROC){
+        fprintf(stderr, "Erro ao compilar (linha %d): Procedimento %s não foi declarado.", nl, $1);
+        YYERROR;
+    }
+
+    int qnt_param = $3.size;
+    int proc_num_param = s->atributes.proc_attr.num_parameters;
+    if(qnt_param != proc_num_param){
+        fprintf(stderr, "Erro ao compilar (linha %d): O procedimento %s precisa de %d parametros (%d foram passados).", nl, $1, proc_num_param, qnt_param);
+        YYERROR;
+    }
+    for(int i=0; i<qnt_param; i++){
+        if($3.data[i] != s->atributes.proc_attr.tipos_parametros.data[i]){
+            fprintf(stderr, "Erro ao compilar (linha %d): o %do parametro do procedimento %s deveria ser do tipo %s (é do tipo %s).\n", nl, i+1, s->ident, type_to_str(s->atributes.proc_attr.tipos_parametros.data[i]),type_to_str($3.data[i]));
+            YYERROR;
+        }
+    }
+
+asprintf(&mepaCommand, "CHPR %s,%d", s->atributes.proc_attr.rotulo,lex_level);
+geraCodigo(NULL, mepaCommand);
+free(mepaCommand);
+} 
                     | IDENT {}
                     ;
 
@@ -490,6 +541,22 @@ void gen_checa_sinal(bool ehNegativo){
         geraCodigo(NULL, "CRCT -1"); 
         geraCodigo(NULL, "MULT");
     }
+}
+
+int set_param_types(int qnt_param, char *typeIdent){
+    TypeID paramType = is_type(typeIdent);
+    if(paramType == INVALID){
+        fprintf(stderr, "Erro ao compilar (linha %d): \"%s\" não é um tipo válido.", nl, typeIdent);
+        assert(0);
+    }
+    
+    for(int i=sybTable.size-qnt_param; i<sybTable.size; i++){ 
+        if(sybTable.data[i].category == CAT_PAR)
+            sybTable.data[i].atributes.param_attr.type = paramType;
+        else if(sybTable.data[i].category == CAT_PROC) // é function
+            sybTable.data[i].atributes.proc_attr.type = paramType;
+    }
+    return qnt_param;
 }
 
 char *novo_rotulo(){
