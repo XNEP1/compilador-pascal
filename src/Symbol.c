@@ -34,6 +34,7 @@ Symbol *insert_par_sybTable(Vec_Symbol *sybTable, char *ident, const int par_lex
     s.lex_level = par_lex_level;
     s.atributes.param_attr.offset = offset;
     // tipo ainda desconhecido.
+    // Também não se sabe ainda se será uma referencia ou por valor.
     Vec_Symbol_push(sybTable, s);
     return &sybTable->data[sybTable->size-1];
 }

@@ -2,7 +2,7 @@
 
 #include "Types.h"
 #include "genericVec.h"
-
+#include <stdbool.h>
 
 enum categories {
     CAT_VAR  = 0,
@@ -18,7 +18,7 @@ typedef struct AtributeVar {
 typedef struct AtributeParameter {
     TypeID type;
     int offset;
-    int reference;  // WIP
+    bool isReference;
 } AtributeParameter;
 
 typedef struct AtributeProcedure {

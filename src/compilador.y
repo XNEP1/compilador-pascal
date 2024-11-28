@@ -16,9 +16,7 @@
 int num_vars = 0; // Conta o numero de vars alocadas no nivel lexico atual
 int lex_level = -1;
 int num_rotulos = 0;
-
-// Use e depois devolva para 0
-int temp_counter_param = 0;
+int exprList_size = 0; // tamanho atual da lista de expressões que está sendo montada.
 
 // Só serve para armazenar temporariamente
 // e como meio de nomear e saber o que é cada coisa.
@@ -27,6 +25,12 @@ char *rotulo_while;
 char *rotulo_do;
 char *rotulo_endif;
 char *rotulo_else;
+
+// Variavel global que armazena o simbolo de um procedimento sendo chamado.
+// Serve para lidar com listas de expressões: ter uma referencia para checar os tipos dos parametros
+// E para gerar o código correto no caso de parametro por referecia.
+// É igual a NULL quando não estamos lidando com geração de código de chamada de procedimento.
+Symbol *callingProc = NULL;
 
 // Ponteiro auxiliar para armazenar um buffer com uma instrução mepa.
 // Após gerar uma instrução, o buffer deve ser liberado.
@@ -41,7 +45,7 @@ void gen_atribuicao(const char *ident, TypeID expressaoTipo);
 TypeID gen_operacao(TypeID expressao1, int oper, TypeID expressao2);
 void gen_checa_sinal(bool ehNegativo);
 char *novo_rotulo();
-int set_param_types(int qnt_param, char *typeIdent);
+int set_param_types(int qnt_param, char *typeIdent, bool isRef);
 void gen_amem(int qnt_vars, char *typeIdent);
 void gen_if_then(TypeID expressionType);
 void gen_if_without_else();
@@ -206,23 +210,23 @@ declaracao_function: {lex_level++;} FUNCTION IDENT parametros_formais DOIS_PONTO
                    ;
 
 
-parametros_formais: {temp_counter_param = 0;} ABRE_PARENTESES lista_parametros_formais FECHA_PARENTESES {$$ = $3;} ;
+parametros_formais: ABRE_PARENTESES lista_parametros_formais FECHA_PARENTESES {$$ = $2;} ;
 
 lista_parametros_formais: secao_parametros_formais
                         | lista_parametros_formais PONTO_E_VIRGULA secao_parametros_formais
                         ;
 
-secao_parametros_formais: VAR lista_id_par DOIS_PONTOS IDENT {$$ = set_param_types($2, $4);}
-                        | lista_id_par DOIS_PONTOS IDENT {$$ = set_param_types($1, $3);} 
-                        | FUNCTION lista_id_par DOIS_PONTOS IDENT {$$ = set_param_types($2, $4);}
-                        | PROCEDURE lista_id_par {$$ = $2;}
+secao_parametros_formais: VAR lista_id_par DOIS_PONTOS IDENT {$$ = set_param_types($2, $4, true);}
+                        | lista_id_par DOIS_PONTOS IDENT {$$ = set_param_types($1, $3, false);} 
+                        | FUNCTION lista_id_par DOIS_PONTOS IDENT {$$ = set_param_types($2, $4, false);}
+                        | PROCEDURE lista_id_par {$$ = $2;} // TODO Como isso funciona??
                         ;
 
 atribuicao: IDENT ATRIBUICAO expressao {gen_atribuicao($1, $3);}
           ;
 
-lista_expressoes: expressao {$$ = Vec_TypeID_new(10); Vec_TypeID_push(&$$, $1);}
-                | lista_expressoes VIRGULA expressao {Vec_TypeID_push(&$$, $3);}
+lista_expressoes: {exprList_size = 1;} expressao {$$ = Vec_TypeID_new(10); Vec_TypeID_push(&$$, $2);}
+                | lista_expressoes VIRGULA {exprList_size += 1;} expressao {$$=$1; Vec_TypeID_push(&$$, $4);}
                 ;
 
 expressao: ABRE_PARENTESES expressao FECHA_PARENTESES {$$ = $2;} %prec EXPRESSAO_PREC
@@ -259,8 +263,8 @@ variavel: IDENT {$$ = $1;}
         | IDENT ABRE_COLCHETES lista_expressoes FECHA_COLCHETES {$$ = $1;}
         ;
 
-chamada_procedimento: IDENT ABRE_PARENTESES lista_expressoes FECHA_PARENTESES {gen_chama_procedimento($1, $3);} 
-                    | IDENT {gen_chama_procedimento($1,Vec_TypeID_new(0));}
+chamada_procedimento: IDENT {callingProc = find_syb(&sybTable, $1);} ABRE_PARENTESES lista_expressoes FECHA_PARENTESES {gen_chama_procedimento($1, $4);} {callingProc = NULL;} 
+                    | IDENT {callingProc = find_syb(&sybTable, $1);}{gen_chama_procedimento($1,Vec_TypeID_new(0));} {callingProc = NULL;}
                     ;
 
 
@@ -567,7 +571,7 @@ void gen_chama_procedimento(char *proc_name, Vec_TypeID expressionType_list){
     free(mepaCommand);
 }
 
-int set_param_types(int qnt_param, char *typeIdent){
+int set_param_types(int qnt_param, char *typeIdent, bool isRef){
     TypeID paramType = is_type(typeIdent);
     if(paramType == INVALID){
         fprintf(stderr, "Erro ao compilar (linha %d): \"%s\" não é um tipo válido.", nl, typeIdent);
@@ -575,12 +579,22 @@ int set_param_types(int qnt_param, char *typeIdent){
     }
     
     for(int i=sybTable.size-qnt_param; i<sybTable.size; i++){ 
-        if(sybTable.data[i].category == CAT_PAR)
+        if(sybTable.data[i].category == CAT_PAR){
             sybTable.data[i].atributes.param_attr.type = paramType;
-        else if(sybTable.data[i].category == CAT_PROC) // é function
+            sybTable.data[i].atributes.param_attr.isReference = isRef;
+        }
+        else if(sybTable.data[i].category == CAT_PROC){ // é function
             sybTable.data[i].atributes.proc_attr.type = paramType;
+        }    
     }
     return qnt_param;
+}
+
+void validate_expr_as_param(){
+    if(callingProc == NULL)
+        return;
+
+    Vec_TypeID
 }
 
 char *novo_rotulo(){

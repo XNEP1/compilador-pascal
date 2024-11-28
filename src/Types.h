@@ -5,7 +5,9 @@
 typedef enum types_IDs {
     INVALID = 0,
     INTEGER = 1,
+    REF_INTEGER,
     BOOLEAN,
+    REF_BOOLEAN,
 } TypeID;
 
 // Define um vetor para o tipo TypeID
