@@ -25,7 +25,7 @@ all: folders $(BIN_DIR)/compilador
 
 $(COMPILER): $(LEX_FILE) $(PARSER_FILE) $(OBJ_FILES)
 	cp $(HEADERS) $(BIN_DIR)
-	gcc $(LEX_FILE) $(PARSER_FILE) $(OBJ_FILES) -o $(COMPILER) -lfl -ly -lc
+	gcc $(LEX_FILE) $(PARSER_FILE) $(OBJ_FILES) -o $(COMPILER) -lfl -ly -lc -g
 	ln -fs $(COMPILER) ./compilador
 
 # analisador léxico

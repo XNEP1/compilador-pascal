@@ -14,6 +14,7 @@
 // (new, destroy, pop, push)
 IMPL_VEC(Vec_Symbol, Symbol)
 
+IMPL_VEC(Vec_bool, bool)
 
 // Aloca e insere um simbolo de variavel e seus atributos na tabela de simbolos
 Symbol *insert_var_sybTable(Vec_Symbol *sybTable, char *ident, const int var_lex_level, const int offset) {
@@ -48,6 +49,8 @@ Symbol *insert_proc_sybTable(Vec_Symbol *sybTable, char *ident, int proc_lex_lev
     s.atributes.proc_attr.rotulo = rotulo;
     s.atributes.proc_attr.num_parameters = num_parameters;
     s.atributes.proc_attr.tipos_parametros = Vec_TypeID_new(num_parameters);
+    s.atributes.proc_attr.isRef = Vec_bool_new(num_parameters);
+
     // tipo ainda desconhecido.
     Vec_Symbol_push(sybTable, s);
     return &sybTable->data[sybTable->size-1];

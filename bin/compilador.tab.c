@@ -98,6 +98,11 @@ char *rotulo_else;
 // É igual a NULL quando não estamos lidando com geração de código de chamada de procedimento.
 Symbol *callingProc = NULL;
 
+// Similar ao callingProc
+// Mas é usado para salvar o simbolo de uma função que está sendo declarada.
+// Serve para inserir uma tabela de quais parametros são ref na função.
+Symbol *declaringProc = NULL;
+
 // Ponteiro auxiliar para armazenar um buffer com uma instrução mepa.
 // Após gerar uma instrução, o buffer deve ser liberado.
 char* mepaCommand = NULL;
@@ -109,6 +114,7 @@ TypeID gen_carrega_var(const char *ident);
 TypeID gen_carrega_numero(const int v);
 void gen_atribuicao(const char *ident, TypeID expressaoTipo);
 TypeID gen_operacao(TypeID expressao1, int oper, TypeID expressao2);
+TypeID gen_not(TypeID expressao1);
 void gen_checa_sinal(bool ehNegativo);
 char *novo_rotulo();
 int set_param_types(int qnt_param, char *typeIdent, bool isRef);
@@ -123,9 +129,11 @@ void gen_while_part3();
 void gen_declara_procedimento_entrar(char *proc_name, int qnt_param);
 void gen_declara_procedimento_retorna(int qnt_param);
 void gen_chama_procedimento(char *proc_name, Vec_TypeID expressionType_list);
+bool gen_special_functions(char *proc_name, Vec_TypeID expressionType_list);
+bool exprShouldBeRef();
 
 
-#line 129 "./bin/compilador.tab.c"
+#line 137 "./bin/compilador.tab.c"
 
 # ifndef YY_CAST
 #  ifdef __cplusplus
@@ -651,15 +659,15 @@ static const yytype_int8 yytranslate[] =
 /* YYRLINE[YYN] -- Source line where rule number YYN was defined.  */
 static const yytype_int16 yyrline[] =
 {
-       0,   119,   119,   119,   130,   128,   152,   156,   157,   160,
-     161,   164,   164,   167,   172,   179,   188,   193,   200,   201,
-     202,   205,   205,   205,   209,   209,   213,   215,   216,   219,
-     220,   221,   222,   225,   228,   228,   229,   229,   232,   233,
-     234,   236,   238,   239,   240,   242,   243,   244,   246,   247,
-     248,   249,   250,   251,   253,   254,   257,   258,   262,   263,
-     266,   266,   266,   267,   267,   267,   277,   280,   283,   283,
-     286,   287,   287,   290,   290,   290,   293,   296,   297,   300,
-     301,   304,   305,   306,   307,   308,   309
+       0,   127,   127,   127,   138,   136,   160,   164,   165,   168,
+     169,   172,   172,   175,   180,   187,   196,   201,   208,   209,
+     210,   213,   213,   213,   217,   217,   221,   223,   224,   227,
+     228,   229,   230,   233,   236,   236,   237,   237,   240,   241,
+     242,   244,   246,   247,   248,   250,   251,   252,   254,   255,
+     256,   257,   258,   259,   261,   262,   265,   266,   270,   271,
+     274,   274,   274,   275,   275,   275,   285,   288,   291,   291,
+     294,   295,   295,   298,   298,   298,   301,   304,   305,   308,
+     309,   312,   313,   314,   315,   316,   317
 };
 #endif
 
@@ -1338,28 +1346,28 @@ yyreduce:
   switch (yyn)
     {
   case 2: /* $@1: %empty  */
-#line 119 "./src/compilador.y"
+#line 127 "./src/compilador.y"
              {
              geraCodigo (NULL, "INPP");
              lex_level++;
              }
-#line 1347 "./bin/compilador.tab.c"
+#line 1355 "./bin/compilador.tab.c"
     break;
 
   case 3: /* programa: $@1 PROGRAM IDENT ABRE_PARENTESES lista_id_par FECHA_PARENTESES PONTO_E_VIRGULA bloco PONTO  */
-#line 125 "./src/compilador.y"
+#line 133 "./src/compilador.y"
                          {geraCodigo (NULL, "PARA");}
-#line 1353 "./bin/compilador.tab.c"
+#line 1361 "./bin/compilador.tab.c"
     break;
 
   case 4: /* $@2: %empty  */
-#line 130 "./src/compilador.y"
+#line 138 "./src/compilador.y"
        {}
-#line 1359 "./bin/compilador.tab.c"
+#line 1367 "./bin/compilador.tab.c"
     break;
 
   case 5: /* bloco: parte_declara_vars parte_declara_subrotinas $@2 comando_composto  */
-#line 132 "./src/compilador.y"
+#line 140 "./src/compilador.y"
 {
     int qnt_mems = (yyvsp[-3].intV);
     if(qnt_mems > 0){
@@ -1376,413 +1384,425 @@ yyreduce:
         printf("DROP SYMB: var %s\n", s.ident);
     }
 }
-#line 1380 "./bin/compilador.tab.c"
+#line 1388 "./bin/compilador.tab.c"
     break;
 
   case 6: /* parte_declara_vars: var  */
-#line 152 "./src/compilador.y"
+#line 160 "./src/compilador.y"
                          {(yyval.intV) = (yyvsp[0].intV);}
-#line 1386 "./bin/compilador.tab.c"
+#line 1394 "./bin/compilador.tab.c"
     break;
 
   case 7: /* var: VAR declara_vars  */
-#line 156 "./src/compilador.y"
+#line 164 "./src/compilador.y"
                       {(yyval.intV) = (yyvsp[0].intV);}
-#line 1392 "./bin/compilador.tab.c"
+#line 1400 "./bin/compilador.tab.c"
     break;
 
   case 8: /* var: %empty  */
-#line 157 "./src/compilador.y"
+#line 165 "./src/compilador.y"
      {(yyval.intV) = 0;}
-#line 1398 "./bin/compilador.tab.c"
+#line 1406 "./bin/compilador.tab.c"
     break;
 
   case 9: /* declara_vars: declara_vars declara_var  */
-#line 160 "./src/compilador.y"
+#line 168 "./src/compilador.y"
                                        {(yyval.intV) = (yyvsp[-1].intV) + (yyvsp[0].intV);}
-#line 1404 "./bin/compilador.tab.c"
+#line 1412 "./bin/compilador.tab.c"
     break;
 
   case 10: /* declara_vars: declara_var  */
-#line 161 "./src/compilador.y"
+#line 169 "./src/compilador.y"
                           {(yyval.intV) = (yyvsp[0].intV);}
-#line 1410 "./bin/compilador.tab.c"
+#line 1418 "./bin/compilador.tab.c"
     break;
 
   case 11: /* $@3: %empty  */
-#line 164 "./src/compilador.y"
+#line 172 "./src/compilador.y"
                                             {gen_amem((yyvsp[-2].intV), (yyvsp[0].tptr));}
-#line 1416 "./bin/compilador.tab.c"
+#line 1424 "./bin/compilador.tab.c"
     break;
 
   case 12: /* declara_var: lista_id_var DOIS_PONTOS IDENT $@3 PONTO_E_VIRGULA  */
-#line 164 "./src/compilador.y"
+#line 172 "./src/compilador.y"
                                                                                 {(yyval.intV) = (yyvsp[-4].intV);}
-#line 1422 "./bin/compilador.tab.c"
+#line 1430 "./bin/compilador.tab.c"
     break;
 
   case 13: /* lista_id_var: lista_id_var VIRGULA IDENT  */
-#line 168 "./src/compilador.y"
+#line 176 "./src/compilador.y"
             { /* insere �ltima vars na tabela de s�mbolos */ 
                 (yyval.intV) = (yyvsp[-2].intV) + 1;
                 insert_var_sybTable(&sybTable, (yyvsp[0].tptr), lex_level, (yyval.intV)-1); // tipo ainda desconhecido. 
             }
-#line 1431 "./bin/compilador.tab.c"
+#line 1439 "./bin/compilador.tab.c"
     break;
 
   case 14: /* lista_id_var: IDENT  */
-#line 173 "./src/compilador.y"
+#line 181 "./src/compilador.y"
             { /* insere vars na tabela de s�mbolos */
                 (yyval.intV) = 1;
                 insert_var_sybTable(&sybTable, (yyvsp[0].tptr), lex_level, (yyval.intV)-1); // tipo ainda desconhecido.
             }
-#line 1440 "./bin/compilador.tab.c"
+#line 1448 "./bin/compilador.tab.c"
     break;
 
   case 15: /* lista_id_par: montando_lista_id_par  */
-#line 180 "./src/compilador.y"
+#line 188 "./src/compilador.y"
             {
                 (yyval.intV) = (yyvsp[0].vecString).size;
                 int i = 0;
                 while((yyvsp[0].vecString).size > 0)
                     insert_par_sybTable(&sybTable, Vec_String_pop(&(yyvsp[0].vecString)), lex_level, -4-(i++));
             }
-#line 1451 "./bin/compilador.tab.c"
+#line 1459 "./bin/compilador.tab.c"
     break;
 
   case 16: /* montando_lista_id_par: montando_lista_id_par VIRGULA IDENT  */
-#line 189 "./src/compilador.y"
+#line 197 "./src/compilador.y"
             { // insere os ultimos
                 (yyval.vecString) = (yyvsp[-2].vecString);
                 Vec_String_push(&(yyval.vecString), (yyvsp[0].tptr));
             }
-#line 1460 "./bin/compilador.tab.c"
+#line 1468 "./bin/compilador.tab.c"
     break;
 
   case 17: /* montando_lista_id_par: IDENT  */
-#line 193 "./src/compilador.y"
+#line 201 "./src/compilador.y"
                     {
                 // insere o primeiro parameter na tabela
                 (yyval.vecString) = Vec_String_new(10);
                 Vec_String_push(&(yyval.vecString), (yyvsp[0].tptr));
             }
-#line 1470 "./bin/compilador.tab.c"
+#line 1478 "./bin/compilador.tab.c"
     break;
 
   case 18: /* parte_declara_subrotinas: %empty  */
-#line 200 "./src/compilador.y"
+#line 208 "./src/compilador.y"
                           {(yyval.intV) = 0;}
-#line 1476 "./bin/compilador.tab.c"
+#line 1484 "./bin/compilador.tab.c"
     break;
 
   case 19: /* parte_declara_subrotinas: parte_declara_subrotinas declaracao_procedimento PONTO_E_VIRGULA  */
-#line 201 "./src/compilador.y"
+#line 209 "./src/compilador.y"
                                                                                            {(yyval.intV) = (yyvsp[-2].intV) + 1;}
-#line 1482 "./bin/compilador.tab.c"
+#line 1490 "./bin/compilador.tab.c"
     break;
 
   case 20: /* parte_declara_subrotinas: parte_declara_subrotinas declaracao_function PONTO_E_VIRGULA  */
-#line 202 "./src/compilador.y"
+#line 210 "./src/compilador.y"
                                                                                        {(yyval.intV) = (yyvsp[-2].intV) + 1;}
-#line 1488 "./bin/compilador.tab.c"
+#line 1496 "./bin/compilador.tab.c"
     break;
 
   case 21: /* $@4: %empty  */
-#line 205 "./src/compilador.y"
+#line 213 "./src/compilador.y"
                          {lex_level++;}
-#line 1494 "./bin/compilador.tab.c"
+#line 1502 "./bin/compilador.tab.c"
     break;
 
   case 22: /* $@5: %empty  */
-#line 205 "./src/compilador.y"
+#line 213 "./src/compilador.y"
                                                                            {gen_declara_procedimento_entrar((yyvsp[-1].tptr), (yyvsp[0].intV));}
-#line 1500 "./bin/compilador.tab.c"
+#line 1508 "./bin/compilador.tab.c"
     break;
 
   case 23: /* declaracao_procedimento: $@4 PROCEDURE IDENT parametros_formais $@5 PONTO_E_VIRGULA bloco  */
-#line 206 "./src/compilador.y"
+#line 214 "./src/compilador.y"
                                                {gen_declara_procedimento_retorna((yyvsp[-3].intV)); lex_level--;}
-#line 1506 "./bin/compilador.tab.c"
+#line 1514 "./bin/compilador.tab.c"
     break;
 
   case 24: /* $@6: %empty  */
-#line 209 "./src/compilador.y"
+#line 217 "./src/compilador.y"
                      {lex_level++;}
-#line 1512 "./bin/compilador.tab.c"
+#line 1520 "./bin/compilador.tab.c"
     break;
 
   case 26: /* parametros_formais: ABRE_PARENTESES lista_parametros_formais FECHA_PARENTESES  */
-#line 213 "./src/compilador.y"
+#line 221 "./src/compilador.y"
                                                                               {(yyval.intV) = (yyvsp[-1].intV);}
-#line 1518 "./bin/compilador.tab.c"
+#line 1526 "./bin/compilador.tab.c"
+    break;
+
+  case 27: /* lista_parametros_formais: secao_parametros_formais  */
+#line 223 "./src/compilador.y"
+                                                   {(yyval.intV) = (yyvsp[0].intV);}
+#line 1532 "./bin/compilador.tab.c"
+    break;
+
+  case 28: /* lista_parametros_formais: lista_parametros_formais PONTO_E_VIRGULA secao_parametros_formais  */
+#line 224 "./src/compilador.y"
+                                                                                            {(yyval.intV) = (yyvsp[-2].intV) + (yyvsp[0].intV);}
+#line 1538 "./bin/compilador.tab.c"
     break;
 
   case 29: /* secao_parametros_formais: VAR lista_id_par DOIS_PONTOS IDENT  */
-#line 219 "./src/compilador.y"
+#line 227 "./src/compilador.y"
                                                              {(yyval.intV) = set_param_types((yyvsp[-2].intV), (yyvsp[0].tptr), true);}
-#line 1524 "./bin/compilador.tab.c"
+#line 1544 "./bin/compilador.tab.c"
     break;
 
   case 30: /* secao_parametros_formais: lista_id_par DOIS_PONTOS IDENT  */
-#line 220 "./src/compilador.y"
+#line 228 "./src/compilador.y"
                                                          {(yyval.intV) = set_param_types((yyvsp[-2].intV), (yyvsp[0].tptr), false);}
-#line 1530 "./bin/compilador.tab.c"
+#line 1550 "./bin/compilador.tab.c"
     break;
 
   case 31: /* secao_parametros_formais: FUNCTION lista_id_par DOIS_PONTOS IDENT  */
-#line 221 "./src/compilador.y"
+#line 229 "./src/compilador.y"
                                                                   {(yyval.intV) = set_param_types((yyvsp[-2].intV), (yyvsp[0].tptr), false);}
-#line 1536 "./bin/compilador.tab.c"
+#line 1556 "./bin/compilador.tab.c"
     break;
 
   case 32: /* secao_parametros_formais: PROCEDURE lista_id_par  */
-#line 222 "./src/compilador.y"
+#line 230 "./src/compilador.y"
                                                  {(yyval.intV) = (yyvsp[0].intV);}
-#line 1542 "./bin/compilador.tab.c"
+#line 1562 "./bin/compilador.tab.c"
     break;
 
   case 33: /* atribuicao: IDENT ATRIBUICAO expressao  */
-#line 225 "./src/compilador.y"
+#line 233 "./src/compilador.y"
                                        {gen_atribuicao((yyvsp[-2].tptr), (yyvsp[0].typeID));}
-#line 1548 "./bin/compilador.tab.c"
+#line 1568 "./bin/compilador.tab.c"
     break;
 
   case 34: /* $@7: %empty  */
-#line 228 "./src/compilador.y"
+#line 236 "./src/compilador.y"
                   {exprList_size = 1;}
-#line 1554 "./bin/compilador.tab.c"
+#line 1574 "./bin/compilador.tab.c"
     break;
 
   case 35: /* lista_expressoes: $@7 expressao  */
-#line 228 "./src/compilador.y"
+#line 236 "./src/compilador.y"
                                                  {(yyval.vecType) = Vec_TypeID_new(10); Vec_TypeID_push(&(yyval.vecType), (yyvsp[0].typeID));}
-#line 1560 "./bin/compilador.tab.c"
+#line 1580 "./bin/compilador.tab.c"
     break;
 
   case 36: /* $@8: %empty  */
-#line 229 "./src/compilador.y"
+#line 237 "./src/compilador.y"
                                            {exprList_size += 1;}
-#line 1566 "./bin/compilador.tab.c"
+#line 1586 "./bin/compilador.tab.c"
     break;
 
   case 37: /* lista_expressoes: lista_expressoes VIRGULA $@8 expressao  */
-#line 229 "./src/compilador.y"
+#line 237 "./src/compilador.y"
                                                                            {(yyval.vecType)=(yyvsp[-3].vecType); Vec_TypeID_push(&(yyval.vecType), (yyvsp[0].typeID));}
-#line 1572 "./bin/compilador.tab.c"
+#line 1592 "./bin/compilador.tab.c"
     break;
 
   case 38: /* expressao: ABRE_PARENTESES expressao FECHA_PARENTESES  */
-#line 232 "./src/compilador.y"
+#line 240 "./src/compilador.y"
                                                       {(yyval.typeID) = (yyvsp[-1].typeID);}
-#line 1578 "./bin/compilador.tab.c"
+#line 1598 "./bin/compilador.tab.c"
     break;
 
   case 39: /* expressao: chamada_funcao  */
-#line 233 "./src/compilador.y"
+#line 241 "./src/compilador.y"
                                             {/*TODO*/(yyval.typeID) = (yyvsp[0].typeID);}
-#line 1584 "./bin/compilador.tab.c"
+#line 1604 "./bin/compilador.tab.c"
     break;
 
   case 40: /* expressao: sinal expressao  */
-#line 234 "./src/compilador.y"
+#line 242 "./src/compilador.y"
                                             {(yyval.typeID) = (yyvsp[0].typeID); gen_checa_sinal((yyvsp[-1].boolV));}
-#line 1590 "./bin/compilador.tab.c"
+#line 1610 "./bin/compilador.tab.c"
     break;
 
   case 41: /* expressao: NOT expressao  */
-#line 236 "./src/compilador.y"
-                                            {/*TODO*/(yyval.typeID) = (yyvsp[0].typeID);}
-#line 1596 "./bin/compilador.tab.c"
+#line 244 "./src/compilador.y"
+                                            {(yyval.typeID) = gen_not((yyvsp[0].typeID));}
+#line 1616 "./bin/compilador.tab.c"
     break;
 
   case 42: /* expressao: expressao MUL expressao  */
-#line 238 "./src/compilador.y"
+#line 246 "./src/compilador.y"
                                             {(yyval.typeID) = gen_operacao((yyvsp[-2].typeID), (yyvsp[-1].tokenType), (yyvsp[0].typeID));}
-#line 1602 "./bin/compilador.tab.c"
+#line 1622 "./bin/compilador.tab.c"
     break;
 
   case 43: /* expressao: expressao DIV expressao  */
-#line 239 "./src/compilador.y"
+#line 247 "./src/compilador.y"
                                             {(yyval.typeID) = gen_operacao((yyvsp[-2].typeID), (yyvsp[-1].tokenType), (yyvsp[0].typeID));}
-#line 1608 "./bin/compilador.tab.c"
+#line 1628 "./bin/compilador.tab.c"
     break;
 
   case 44: /* expressao: expressao AND expressao  */
-#line 240 "./src/compilador.y"
+#line 248 "./src/compilador.y"
                                             {(yyval.typeID) = gen_operacao((yyvsp[-2].typeID), (yyvsp[-1].tokenType), (yyvsp[0].typeID));}
-#line 1614 "./bin/compilador.tab.c"
+#line 1634 "./bin/compilador.tab.c"
     break;
 
   case 45: /* expressao: expressao SOMA expressao  */
-#line 242 "./src/compilador.y"
+#line 250 "./src/compilador.y"
                                             {(yyval.typeID) = gen_operacao((yyvsp[-2].typeID), (yyvsp[-1].tokenType), (yyvsp[0].typeID));}
-#line 1620 "./bin/compilador.tab.c"
+#line 1640 "./bin/compilador.tab.c"
     break;
 
   case 46: /* expressao: expressao SUB expressao  */
-#line 243 "./src/compilador.y"
+#line 251 "./src/compilador.y"
                                             {(yyval.typeID) = gen_operacao((yyvsp[-2].typeID), (yyvsp[-1].tokenType), (yyvsp[0].typeID));}
-#line 1626 "./bin/compilador.tab.c"
+#line 1646 "./bin/compilador.tab.c"
     break;
 
   case 47: /* expressao: expressao OR expressao  */
-#line 244 "./src/compilador.y"
+#line 252 "./src/compilador.y"
                                             {(yyval.typeID) = gen_operacao((yyvsp[-2].typeID), (yyvsp[-1].tokenType), (yyvsp[0].typeID));}
-#line 1632 "./bin/compilador.tab.c"
+#line 1652 "./bin/compilador.tab.c"
     break;
 
   case 48: /* expressao: expressao IGUAL expressao  */
-#line 246 "./src/compilador.y"
+#line 254 "./src/compilador.y"
                                             {(yyval.typeID) = gen_operacao((yyvsp[-2].typeID), (yyvsp[-1].tokenType), (yyvsp[0].typeID));}
-#line 1638 "./bin/compilador.tab.c"
+#line 1658 "./bin/compilador.tab.c"
     break;
 
   case 49: /* expressao: expressao DIFERENTE expressao  */
-#line 247 "./src/compilador.y"
+#line 255 "./src/compilador.y"
                                             {(yyval.typeID) = gen_operacao((yyvsp[-2].typeID), (yyvsp[-1].tokenType), (yyvsp[0].typeID));}
-#line 1644 "./bin/compilador.tab.c"
+#line 1664 "./bin/compilador.tab.c"
     break;
 
   case 50: /* expressao: expressao MAIOR expressao  */
-#line 248 "./src/compilador.y"
+#line 256 "./src/compilador.y"
                                             {(yyval.typeID) = gen_operacao((yyvsp[-2].typeID), (yyvsp[-1].tokenType), (yyvsp[0].typeID));}
-#line 1650 "./bin/compilador.tab.c"
+#line 1670 "./bin/compilador.tab.c"
     break;
 
   case 51: /* expressao: expressao MAIOR_IGUAL expressao  */
-#line 249 "./src/compilador.y"
+#line 257 "./src/compilador.y"
                                             {(yyval.typeID) = gen_operacao((yyvsp[-2].typeID), (yyvsp[-1].tokenType), (yyvsp[0].typeID));}
-#line 1656 "./bin/compilador.tab.c"
+#line 1676 "./bin/compilador.tab.c"
     break;
 
   case 52: /* expressao: expressao MENOR expressao  */
-#line 250 "./src/compilador.y"
+#line 258 "./src/compilador.y"
                                             {(yyval.typeID) = gen_operacao((yyvsp[-2].typeID), (yyvsp[-1].tokenType), (yyvsp[0].typeID));}
-#line 1662 "./bin/compilador.tab.c"
+#line 1682 "./bin/compilador.tab.c"
     break;
 
   case 53: /* expressao: expressao MENOR_IGUAL expressao  */
-#line 251 "./src/compilador.y"
+#line 259 "./src/compilador.y"
                                             {(yyval.typeID) = gen_operacao((yyvsp[-2].typeID), (yyvsp[-1].tokenType), (yyvsp[0].typeID));}
-#line 1668 "./bin/compilador.tab.c"
+#line 1688 "./bin/compilador.tab.c"
     break;
 
   case 54: /* expressao: variavel  */
-#line 253 "./src/compilador.y"
+#line 261 "./src/compilador.y"
                                             { (yyval.typeID) = gen_carrega_var((yyvsp[0].tptr)); /* TEMPORARIO, FALTA SUPORTE PARA ARRAY */ }
-#line 1674 "./bin/compilador.tab.c"
+#line 1694 "./bin/compilador.tab.c"
     break;
 
   case 55: /* expressao: NUMBER  */
-#line 254 "./src/compilador.y"
+#line 262 "./src/compilador.y"
                                             { (yyval.typeID) = gen_carrega_numero((yyvsp[0].intV)); }
-#line 1680 "./bin/compilador.tab.c"
+#line 1700 "./bin/compilador.tab.c"
     break;
 
   case 56: /* sinal: SOMA  */
-#line 257 "./src/compilador.y"
+#line 265 "./src/compilador.y"
             {(yyval.boolV) = false;}
-#line 1686 "./bin/compilador.tab.c"
+#line 1706 "./bin/compilador.tab.c"
     break;
 
   case 57: /* sinal: SUB  */
-#line 258 "./src/compilador.y"
+#line 266 "./src/compilador.y"
             {(yyval.boolV) = true;}
-#line 1692 "./bin/compilador.tab.c"
+#line 1712 "./bin/compilador.tab.c"
     break;
 
   case 58: /* variavel: IDENT  */
-#line 262 "./src/compilador.y"
+#line 270 "./src/compilador.y"
                 {(yyval.tptr) = (yyvsp[0].tptr);}
-#line 1698 "./bin/compilador.tab.c"
+#line 1718 "./bin/compilador.tab.c"
     break;
 
   case 59: /* variavel: IDENT ABRE_COLCHETES lista_expressoes FECHA_COLCHETES  */
-#line 263 "./src/compilador.y"
+#line 271 "./src/compilador.y"
                                                                 {(yyval.tptr) = (yyvsp[-3].tptr);}
-#line 1704 "./bin/compilador.tab.c"
+#line 1724 "./bin/compilador.tab.c"
     break;
 
   case 60: /* $@9: %empty  */
-#line 266 "./src/compilador.y"
+#line 274 "./src/compilador.y"
                             {callingProc = find_syb(&sybTable, (yyvsp[0].tptr));}
-#line 1710 "./bin/compilador.tab.c"
+#line 1730 "./bin/compilador.tab.c"
     break;
 
   case 61: /* $@10: %empty  */
-#line 266 "./src/compilador.y"
+#line 274 "./src/compilador.y"
                                                                                                                        {gen_chama_procedimento((yyvsp[-4].tptr), (yyvsp[-1].vecType));}
-#line 1716 "./bin/compilador.tab.c"
+#line 1736 "./bin/compilador.tab.c"
     break;
 
   case 62: /* chamada_procedimento: IDENT $@9 ABRE_PARENTESES lista_expressoes FECHA_PARENTESES $@10  */
-#line 266 "./src/compilador.y"
+#line 274 "./src/compilador.y"
                                                                                                                                                          {callingProc = NULL;}
-#line 1722 "./bin/compilador.tab.c"
+#line 1742 "./bin/compilador.tab.c"
     break;
 
   case 63: /* $@11: %empty  */
-#line 267 "./src/compilador.y"
+#line 275 "./src/compilador.y"
                             {callingProc = find_syb(&sybTable, (yyvsp[0].tptr));}
-#line 1728 "./bin/compilador.tab.c"
+#line 1748 "./bin/compilador.tab.c"
     break;
 
   case 64: /* $@12: %empty  */
-#line 267 "./src/compilador.y"
+#line 275 "./src/compilador.y"
                                                                     {gen_chama_procedimento((yyvsp[-1].tptr),Vec_TypeID_new(0));}
-#line 1734 "./bin/compilador.tab.c"
+#line 1754 "./bin/compilador.tab.c"
     break;
 
   case 65: /* chamada_procedimento: IDENT $@11 $@12  */
-#line 267 "./src/compilador.y"
+#line 275 "./src/compilador.y"
                                                                                                                     {callingProc = NULL;}
-#line 1740 "./bin/compilador.tab.c"
+#line 1760 "./bin/compilador.tab.c"
     break;
 
   case 68: /* $@13: %empty  */
-#line 283 "./src/compilador.y"
+#line 291 "./src/compilador.y"
                       {gen_if_then((yyvsp[0].typeID));}
-#line 1746 "./bin/compilador.tab.c"
+#line 1766 "./bin/compilador.tab.c"
     break;
 
   case 70: /* comando_condicional: if_then  */
-#line 286 "./src/compilador.y"
+#line 294 "./src/compilador.y"
                                                    {gen_if_without_else();}
-#line 1752 "./bin/compilador.tab.c"
+#line 1772 "./bin/compilador.tab.c"
     break;
 
   case 71: /* $@14: %empty  */
-#line 287 "./src/compilador.y"
+#line 295 "./src/compilador.y"
                                   {gen_if_with_else_part1();}
-#line 1758 "./bin/compilador.tab.c"
+#line 1778 "./bin/compilador.tab.c"
     break;
 
   case 72: /* comando_condicional: if_then ELSE $@14 comando_sem_rotulo  */
-#line 287 "./src/compilador.y"
+#line 295 "./src/compilador.y"
                                                                                  {gen_if_with_else_part2();}
-#line 1764 "./bin/compilador.tab.c"
+#line 1784 "./bin/compilador.tab.c"
     break;
 
   case 73: /* $@15: %empty  */
-#line 290 "./src/compilador.y"
+#line 298 "./src/compilador.y"
                           {gen_while_part1();}
-#line 1770 "./bin/compilador.tab.c"
+#line 1790 "./bin/compilador.tab.c"
     break;
 
   case 74: /* $@16: %empty  */
-#line 290 "./src/compilador.y"
+#line 298 "./src/compilador.y"
                                                             {gen_while_part2((yyvsp[-1].typeID));}
-#line 1776 "./bin/compilador.tab.c"
+#line 1796 "./bin/compilador.tab.c"
     break;
 
   case 75: /* comando_repititivo: WHILE $@15 expressao DO $@16 comando_sem_rotulo  */
-#line 290 "./src/compilador.y"
+#line 298 "./src/compilador.y"
                                                                                                       {gen_while_part3();}
-#line 1782 "./bin/compilador.tab.c"
+#line 1802 "./bin/compilador.tab.c"
     break;
 
 
-#line 1786 "./bin/compilador.tab.c"
+#line 1806 "./bin/compilador.tab.c"
 
       default: break;
     }
@@ -1975,7 +1995,7 @@ yyreturnlab:
   return yyresult;
 }
 
-#line 312 "./src/compilador.y"
+#line 320 "./src/compilador.y"
 
 
 // ===============
@@ -1993,29 +2013,58 @@ TypeID gen_carrega_var(const char *ident){
     Symbol* s;
     TypeID returnValue;
 
+    s = find_syb(&sybTable, ident);
+
+    if(exprShouldBeRef() && (strcmp(ident,"true") == 0 || strcmp(ident, "false") == 0)){
+        fprintf(stderr, "Erro ao compilar (linha %d): Parametro %d deveria ser uma referencia, mas a expressão não é referenciável.", exprList_size);
+        exit(-1);
+    }
+
+    if(exprShouldBeRef()){
+        asprintf(&mepaCommand, "CREN %d,%d", s->lex_level, s->atributes.var_attr.offset);
+        returnValue = s->atributes.var_attr.type;
+        goto gen_carrega_var_EXIT;
+    }
+
     if(strcmp(ident,"true") == 0){
         asprintf(&mepaCommand, "CRCT %d", 1);
         returnValue = BOOLEAN;
+        goto gen_carrega_var_EXIT;
     }
     else if(strcmp(ident, "false") == 0){
         asprintf(&mepaCommand, "CRCT %d", 0);
         returnValue = BOOLEAN;
-    }
-    else if((s = find_syb(&sybTable, ident)) != NULL && lex_level <= s->lex_level){
-        asprintf(&mepaCommand, "CRVL %d,%d", s->lex_level, s->atributes.var_attr.offset);
-        returnValue = s->atributes.var_attr.type;
-    }
-    else{
-        fprintf(stderr, "Erro ao compilar (linha %d): \"%s\" não declarado.", nl, ident);
-        return INVALID;
+        goto gen_carrega_var_EXIT;
     }
 
+    if(s == NULL || lex_level > s->lex_level){
+        fprintf(stderr, "Erro ao compilar (linha %d): \"%s\" não declarado. (Nivel lexico Atual = %d)", nl, ident, lex_level);
+        exit(-1);
+    }
+
+    if(s->category == CAT_VAR || (s->category == CAT_PAR && !s->atributes.param_attr.isRef)){
+        asprintf(&mepaCommand, "CRVL %d,%d", s->lex_level, s->atributes.var_attr.offset);
+        returnValue = s->atributes.var_attr.type;
+        goto gen_carrega_var_EXIT;
+    } else { // é um parametro por referencia
+        asprintf(&mepaCommand, "CRVI %d,%d", s->lex_level, s->atributes.var_attr.offset);
+        returnValue = s->atributes.var_attr.type;
+        goto gen_carrega_var_EXIT;
+    }
+
+        
+    gen_carrega_var_EXIT:
     geraCodigo(NULL, mepaCommand);
     free(mepaCommand);
     return returnValue;
 }
 
 TypeID gen_carrega_numero(const int v){
+    if(exprShouldBeRef()){
+        fprintf(stderr, "Erro ao compilar (linha %d): Parametro %d deveria ser uma referencia, mas a expressão não é referenciável.", exprList_size);
+        exit(-1);
+    }
+
     asprintf(&mepaCommand, "CRCT %d", v);
     geraCodigo(NULL, mepaCommand);
     free(mepaCommand);
@@ -2029,16 +2078,23 @@ void gen_atribuicao(const char *ident, TypeID expressaoTipo){
         fprintf(stderr, "Erro ao compilar (linha %d): \"%s\" não definido.", nl, ident);
         exit(-1);
     }
-    else if(s->category == CAT_VAR)
-        asprintf(&mepaCommand, "ARMZ %d,%d", s->lex_level, s->atributes.var_attr.offset);
-    else if(s->category == CAT_PAR)
+
+    if(s->category == CAT_PROC){
+        fprintf(stderr, "Erro ao compilar (linha %d): \"%s\" é um procedimento e não é atribuivel.", nl, ident);
+        exit(-1);
+    }
+
+    if(s->category == CAT_PAR && s->atributes.param_attr.isRef){
+        asprintf(&mepaCommand, "ARMI %d,%d", s->lex_level, s->atributes.param_attr.offset);
+    } else if (s->category == CAT_PAR){
         asprintf(&mepaCommand, "ARMZ %d,%d", s->lex_level, s->atributes.param_attr.offset);
-    else if(s->category == CAT_PROC)
-        assert(0); // WIP: Ainda não sei oq fazer caso alguem tente atribuir algo ao simbolo de uma função. Pascal suporta isso?
-    else{
+    } else if(s->category == CAT_VAR) {
+        asprintf(&mepaCommand, "ARMZ %d,%d", s->lex_level, s->atributes.var_attr.offset);
+    } else {
         fprintf(stderr, "Erro ao compilar (linha %d): \"%s\" não é um simbolo atribuivel.", nl, ident);
         exit(-1);
     }
+
     geraCodigo(NULL, mepaCommand);
     free(mepaCommand);
 }
@@ -2046,6 +2102,11 @@ void gen_atribuicao(const char *ident, TypeID expressaoTipo){
 TypeID gen_operacao(TypeID expressao1, int oper, TypeID expressao2){
     if(expressao1 != expressao2){
         fprintf(stderr, "Erro ao compilar (linha %d): %s e %s não são compatíveis em uma expressão.", nl, type_to_str(expressao1), type_to_str(expressao2));
+        exit(-1);
+    }
+
+    if(exprShouldBeRef()){
+        fprintf(stderr, "Erro ao compilar (linha %d): Parametro %d deveria ser uma referencia, mas a expressão não é referenciável.", exprList_size);
         exit(-1);
     }
 
@@ -2083,10 +2144,19 @@ TypeID gen_operacao(TypeID expressao1, int oper, TypeID expressao2){
     return INVALID;
 }
 
+TypeID gen_not(TypeID expressao1){
+    if(expressao1 != BOOLEAN){
+        fprintf(stderr, "Erro ao compilar (linha %d): a operação NOT não pode ser usada em algo que não é uma expressão booleana.", nl);
+        exit(-1);
+    }
+
+    geraCodigo(NULL, "NEGA");
+    return BOOLEAN;
+}
+
 void gen_checa_sinal(bool ehNegativo){
     if(ehNegativo){
-        geraCodigo(NULL, "CRCT -1"); 
-        geraCodigo(NULL, "MULT");
+        geraCodigo(NULL, "INVR"); 
     }
 }
 
@@ -2176,6 +2246,27 @@ void gen_while_part3(){
     free(rotulo_while);
 }
 
+bool gen_special_functions(char *proc_name, Vec_TypeID expressionType_list){
+    int qnt_param = expressionType_list.size;
+    char *tempCommandString;
+    if(strcmp(proc_name, "read") == 0)
+        tempCommandString = "LEIT";
+    else if(strcmp(proc_name, "write") == 0)
+        tempCommandString = "IMPR";
+    else 
+        return false;
+
+    for(int i=2; i<=qnt_param+1; i++){
+        geraCodigo(NULL, tempCommandString);
+
+        Symbol s=sybTable.data[sybTable.size - i];
+        asprintf(&mepaCommand, "ARMZ %d,%d", s.lex_level, s.atributes.param_attr.offset);
+        geraCodigo(NULL, mepaCommand);
+        free(mepaCommand);
+    }
+    return true;
+}
+
 void gen_declara_procedimento_entrar(char *proc_name, int qnt_param){
     char *rotulo = novo_rotulo();
     Symbol *proc_syb = insert_proc_sybTable(&sybTable, proc_name, lex_level, rotulo, qnt_param);
@@ -2183,6 +2274,8 @@ void gen_declara_procedimento_entrar(char *proc_name, int qnt_param){
     for(int i=2; i<=qnt_param+1; i++){
         Symbol s=sybTable.data[sybTable.size - i];
         Vec_TypeID_push(&proc_syb->atributes.proc_attr.tipos_parametros, s.atributes.param_attr.type);
+        bool paramIsRef = s.atributes.param_attr.isRef;
+        Vec_bool_push(&proc_syb->atributes.proc_attr.isRef, paramIsRef);
     }
     proc_syb->atributes.proc_attr.type = INVALID;
 
@@ -2214,6 +2307,9 @@ void gen_declara_procedimento_retorna(int qnt_param){
 }
 
 void gen_chama_procedimento(char *proc_name, Vec_TypeID expressionType_list){
+    if(gen_special_functions(proc_name, expressionType_list))
+        return;
+
     Symbol *s = find_syb(&sybTable, proc_name);
     if(s == NULL || s->category != CAT_PROC){
         fprintf(stderr, "Erro ao compilar (linha %d): Procedimento %s não foi declarado.", nl, proc_name);
@@ -2248,13 +2344,21 @@ int set_param_types(int qnt_param, char *typeIdent, bool isRef){
     for(int i=sybTable.size-qnt_param; i<sybTable.size; i++){ 
         if(sybTable.data[i].category == CAT_PAR){
             sybTable.data[i].atributes.param_attr.type = paramType;
-            sybTable.data[i].atributes.param_attr.isReference = isRef;
+            sybTable.data[i].atributes.param_attr.isRef = isRef;
         }
         else if(sybTable.data[i].category == CAT_PROC){ // é function
             sybTable.data[i].atributes.proc_attr.type = paramType;
         }    
     }
     return qnt_param;
+}
+
+bool exprShouldBeRef(){
+    // É usado na regra de lista de expressões para definir se o código usará carrega ou carrega indiretamente.
+    if(callingProc == NULL)
+        return false;
+
+    return callingProc->atributes.proc_attr.isRef.data[exprList_size-1];
 }
 
 char *novo_rotulo(){

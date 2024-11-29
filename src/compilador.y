@@ -32,6 +32,11 @@ char *rotulo_else;
 // É igual a NULL quando não estamos lidando com geração de código de chamada de procedimento.
 Symbol *callingProc = NULL;
 
+// Similar ao callingProc
+// Mas é usado para salvar o simbolo de uma função que está sendo declarada.
+// Serve para inserir uma tabela de quais parametros são ref na função.
+Symbol *declaringProc = NULL;
+
 // Ponteiro auxiliar para armazenar um buffer com uma instrução mepa.
 // Após gerar uma instrução, o buffer deve ser liberado.
 char* mepaCommand = NULL;
@@ -43,6 +48,7 @@ TypeID gen_carrega_var(const char *ident);
 TypeID gen_carrega_numero(const int v);
 void gen_atribuicao(const char *ident, TypeID expressaoTipo);
 TypeID gen_operacao(TypeID expressao1, int oper, TypeID expressao2);
+TypeID gen_not(TypeID expressao1);
 void gen_checa_sinal(bool ehNegativo);
 char *novo_rotulo();
 int set_param_types(int qnt_param, char *typeIdent, bool isRef);
@@ -57,6 +63,8 @@ void gen_while_part3();
 void gen_declara_procedimento_entrar(char *proc_name, int qnt_param);
 void gen_declara_procedimento_retorna(int qnt_param);
 void gen_chama_procedimento(char *proc_name, Vec_TypeID expressionType_list);
+bool gen_special_functions(char *proc_name, Vec_TypeID expressionType_list);
+bool exprShouldBeRef();
 
 %}
 
@@ -210,10 +218,10 @@ declaracao_function: {lex_level++;} FUNCTION IDENT parametros_formais DOIS_PONTO
                    ;
 
 
-parametros_formais: ABRE_PARENTESES lista_parametros_formais FECHA_PARENTESES {$$ = $2;} ;
+parametros_formais: ABRE_PARENTESES lista_parametros_formais FECHA_PARENTESES {$$ = $2;};
 
-lista_parametros_formais: secao_parametros_formais
-                        | lista_parametros_formais PONTO_E_VIRGULA secao_parametros_formais
+lista_parametros_formais: secao_parametros_formais {$$ = $1;}
+                        | lista_parametros_formais PONTO_E_VIRGULA secao_parametros_formais {$$ = $1 + $3;}
                         ;
 
 secao_parametros_formais: VAR lista_id_par DOIS_PONTOS IDENT {$$ = set_param_types($2, $4, true);}
@@ -233,7 +241,7 @@ expressao: ABRE_PARENTESES expressao FECHA_PARENTESES {$$ = $2;} %prec EXPRESSAO
          | chamada_funcao                   {/*TODO*/$$ = $1;} %prec EXPRESSAO_PREC
          | sinal expressao                  {$$ = $2; gen_checa_sinal($1);} %prec EXPRESSAO_PREC
 
-         | NOT expressao                    {/*TODO*/$$ = $2;}
+         | NOT expressao                    {$$ = gen_not($2);}
 
          | expressao MUL expressao          {$$ = gen_operacao($1, $2, $3);}
          | expressao DIV expressao          {$$ = gen_operacao($1, $2, $3);}
@@ -326,29 +334,58 @@ TypeID gen_carrega_var(const char *ident){
     Symbol* s;
     TypeID returnValue;
 
+    s = find_syb(&sybTable, ident);
+
+    if(exprShouldBeRef() && (strcmp(ident,"true") == 0 || strcmp(ident, "false") == 0)){
+        fprintf(stderr, "Erro ao compilar (linha %d): Parametro %d deveria ser uma referencia, mas a expressão não é referenciável.", exprList_size);
+        exit(-1);
+    }
+
+    if(exprShouldBeRef()){
+        asprintf(&mepaCommand, "CREN %d,%d", s->lex_level, s->atributes.var_attr.offset);
+        returnValue = s->atributes.var_attr.type;
+        goto gen_carrega_var_EXIT;
+    }
+
     if(strcmp(ident,"true") == 0){
         asprintf(&mepaCommand, "CRCT %d", 1);
         returnValue = BOOLEAN;
+        goto gen_carrega_var_EXIT;
     }
     else if(strcmp(ident, "false") == 0){
         asprintf(&mepaCommand, "CRCT %d", 0);
         returnValue = BOOLEAN;
-    }
-    else if((s = find_syb(&sybTable, ident)) != NULL && lex_level <= s->lex_level){
-        asprintf(&mepaCommand, "CRVL %d,%d", s->lex_level, s->atributes.var_attr.offset);
-        returnValue = s->atributes.var_attr.type;
-    }
-    else{
-        fprintf(stderr, "Erro ao compilar (linha %d): \"%s\" não declarado.", nl, ident);
-        return INVALID;
+        goto gen_carrega_var_EXIT;
     }
 
+    if(s == NULL || lex_level > s->lex_level){
+        fprintf(stderr, "Erro ao compilar (linha %d): \"%s\" não declarado. (Nivel lexico Atual = %d)", nl, ident, lex_level);
+        exit(-1);
+    }
+
+    if(s->category == CAT_VAR || (s->category == CAT_PAR && !s->atributes.param_attr.isRef)){
+        asprintf(&mepaCommand, "CRVL %d,%d", s->lex_level, s->atributes.var_attr.offset);
+        returnValue = s->atributes.var_attr.type;
+        goto gen_carrega_var_EXIT;
+    } else { // é um parametro por referencia
+        asprintf(&mepaCommand, "CRVI %d,%d", s->lex_level, s->atributes.var_attr.offset);
+        returnValue = s->atributes.var_attr.type;
+        goto gen_carrega_var_EXIT;
+    }
+
+        
+    gen_carrega_var_EXIT:
     geraCodigo(NULL, mepaCommand);
     free(mepaCommand);
     return returnValue;
 }
 
 TypeID gen_carrega_numero(const int v){
+    if(exprShouldBeRef()){
+        fprintf(stderr, "Erro ao compilar (linha %d): Parametro %d deveria ser uma referencia, mas a expressão não é referenciável.", exprList_size);
+        exit(-1);
+    }
+
     asprintf(&mepaCommand, "CRCT %d", v);
     geraCodigo(NULL, mepaCommand);
     free(mepaCommand);
@@ -362,16 +399,23 @@ void gen_atribuicao(const char *ident, TypeID expressaoTipo){
         fprintf(stderr, "Erro ao compilar (linha %d): \"%s\" não definido.", nl, ident);
         exit(-1);
     }
-    else if(s->category == CAT_VAR)
-        asprintf(&mepaCommand, "ARMZ %d,%d", s->lex_level, s->atributes.var_attr.offset);
-    else if(s->category == CAT_PAR)
+
+    if(s->category == CAT_PROC){
+        fprintf(stderr, "Erro ao compilar (linha %d): \"%s\" é um procedimento e não é atribuivel.", nl, ident);
+        exit(-1);
+    }
+
+    if(s->category == CAT_PAR && s->atributes.param_attr.isRef){
+        asprintf(&mepaCommand, "ARMI %d,%d", s->lex_level, s->atributes.param_attr.offset);
+    } else if (s->category == CAT_PAR){
         asprintf(&mepaCommand, "ARMZ %d,%d", s->lex_level, s->atributes.param_attr.offset);
-    else if(s->category == CAT_PROC)
-        assert(0); // WIP: Ainda não sei oq fazer caso alguem tente atribuir algo ao simbolo de uma função. Pascal suporta isso?
-    else{
+    } else if(s->category == CAT_VAR) {
+        asprintf(&mepaCommand, "ARMZ %d,%d", s->lex_level, s->atributes.var_attr.offset);
+    } else {
         fprintf(stderr, "Erro ao compilar (linha %d): \"%s\" não é um simbolo atribuivel.", nl, ident);
         exit(-1);
     }
+
     geraCodigo(NULL, mepaCommand);
     free(mepaCommand);
 }
@@ -379,6 +423,11 @@ void gen_atribuicao(const char *ident, TypeID expressaoTipo){
 TypeID gen_operacao(TypeID expressao1, int oper, TypeID expressao2){
     if(expressao1 != expressao2){
         fprintf(stderr, "Erro ao compilar (linha %d): %s e %s não são compatíveis em uma expressão.", nl, type_to_str(expressao1), type_to_str(expressao2));
+        exit(-1);
+    }
+
+    if(exprShouldBeRef()){
+        fprintf(stderr, "Erro ao compilar (linha %d): Parametro %d deveria ser uma referencia, mas a expressão não é referenciável.", exprList_size);
         exit(-1);
     }
 
@@ -416,10 +465,19 @@ TypeID gen_operacao(TypeID expressao1, int oper, TypeID expressao2){
     return INVALID;
 }
 
+TypeID gen_not(TypeID expressao1){
+    if(expressao1 != BOOLEAN){
+        fprintf(stderr, "Erro ao compilar (linha %d): a operação NOT não pode ser usada em algo que não é uma expressão booleana.", nl);
+        exit(-1);
+    }
+
+    geraCodigo(NULL, "NEGA");
+    return BOOLEAN;
+}
+
 void gen_checa_sinal(bool ehNegativo){
     if(ehNegativo){
-        geraCodigo(NULL, "CRCT -1"); 
-        geraCodigo(NULL, "MULT");
+        geraCodigo(NULL, "INVR"); 
     }
 }
 
@@ -509,6 +567,27 @@ void gen_while_part3(){
     free(rotulo_while);
 }
 
+bool gen_special_functions(char *proc_name, Vec_TypeID expressionType_list){
+    int qnt_param = expressionType_list.size;
+    char *tempCommandString; // TA TUDO ERRADO/ WRITE DA FAZENDO ARMZ
+    if(strcmp(proc_name, "read") == 0)
+        tempCommandString = "LEIT";
+    else if(strcmp(proc_name, "write") == 0)
+        tempCommandString = "IMPR";
+    else 
+        return false;
+
+    for(int i=2; i<=qnt_param+1; i++){
+        geraCodigo(NULL, tempCommandString);
+
+        Symbol s=sybTable.data[sybTable.size - i];
+        asprintf(&mepaCommand, "ARMZ %d,%d", s.lex_level, s.atributes.param_attr.offset);
+        geraCodigo(NULL, mepaCommand);
+        free(mepaCommand);
+    }
+    return true;
+}
+
 void gen_declara_procedimento_entrar(char *proc_name, int qnt_param){
     char *rotulo = novo_rotulo();
     Symbol *proc_syb = insert_proc_sybTable(&sybTable, proc_name, lex_level, rotulo, qnt_param);
@@ -516,6 +595,8 @@ void gen_declara_procedimento_entrar(char *proc_name, int qnt_param){
     for(int i=2; i<=qnt_param+1; i++){
         Symbol s=sybTable.data[sybTable.size - i];
         Vec_TypeID_push(&proc_syb->atributes.proc_attr.tipos_parametros, s.atributes.param_attr.type);
+        bool paramIsRef = s.atributes.param_attr.isRef;
+        Vec_bool_push(&proc_syb->atributes.proc_attr.isRef, paramIsRef);
     }
     proc_syb->atributes.proc_attr.type = INVALID;
 
@@ -547,6 +628,9 @@ void gen_declara_procedimento_retorna(int qnt_param){
 }
 
 void gen_chama_procedimento(char *proc_name, Vec_TypeID expressionType_list){
+    if(gen_special_functions(proc_name, expressionType_list))
+        return;
+
     Symbol *s = find_syb(&sybTable, proc_name);
     if(s == NULL || s->category != CAT_PROC){
         fprintf(stderr, "Erro ao compilar (linha %d): Procedimento %s não foi declarado.", nl, proc_name);
@@ -581,7 +665,7 @@ int set_param_types(int qnt_param, char *typeIdent, bool isRef){
     for(int i=sybTable.size-qnt_param; i<sybTable.size; i++){ 
         if(sybTable.data[i].category == CAT_PAR){
             sybTable.data[i].atributes.param_attr.type = paramType;
-            sybTable.data[i].atributes.param_attr.isReference = isRef;
+            sybTable.data[i].atributes.param_attr.isRef = isRef;
         }
         else if(sybTable.data[i].category == CAT_PROC){ // é function
             sybTable.data[i].atributes.proc_attr.type = paramType;
@@ -590,11 +674,12 @@ int set_param_types(int qnt_param, char *typeIdent, bool isRef){
     return qnt_param;
 }
 
-void validate_expr_as_param(){
+bool exprShouldBeRef(){
+    // É usado na regra de lista de expressões para definir se o código usará carrega ou carrega indiretamente.
     if(callingProc == NULL)
-        return;
+        return false;
 
-    Vec_TypeID
+    return callingProc->atributes.proc_attr.isRef.data[exprList_size-1];
 }
 
 char *novo_rotulo(){

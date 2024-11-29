@@ -40,12 +40,14 @@ int type_size(TypeID type) {
 // Retorna uma str com o nome do tipo.
 const char* type_to_str(TypeID type) {
     switch (type) {
+    case INVALID:
+        return "Invalid";
     case INTEGER:
         return "Integer";
     case BOOLEAN:
         return "Boolean";
     default:
         fprintf(stderr, "ERROR: type %d\n", type);
-        assert(0);
+        assert(0 && "Tipo desconhecido ou inválido(igual a 0)");
     }
 }

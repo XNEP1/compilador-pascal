@@ -4,6 +4,8 @@
 #include "genericVec.h"
 #include <stdbool.h>
 
+DEF_VEC(Vec_bool, bool)
+
 enum categories {
     CAT_VAR  = 0,
     CAT_PAR  = 1,
@@ -18,7 +20,7 @@ typedef struct AtributeVar {
 typedef struct AtributeParameter {
     TypeID type;
     int offset;
-    bool isReference;
+    bool isRef;
 } AtributeParameter;
 
 typedef struct AtributeProcedure {
@@ -26,7 +28,7 @@ typedef struct AtributeProcedure {
     const char *rotulo;
     int num_parameters;
     Vec_TypeID tipos_parametros;
-    // falta um vec de mecanismo de passagem dos parameters
+    Vec_bool isRef;
 } AtributeProcedure;
 
 typedef union Atributes {
