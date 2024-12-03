@@ -310,11 +310,11 @@ comando_composto: T_BEGIN comandos T_END
                 ;
 
 comandos: comando
-        | comandos comando 
+        | comandos PONTO_E_VIRGULA comando 
         ;
 
-comando: NUMBER comando_sem_rotulo PONTO_E_VIRGULA
-       | comando_sem_rotulo PONTO_E_VIRGULA
+comando: NUMBER comando_sem_rotulo
+       | comando_sem_rotulo
        ;
 
 comando_sem_rotulo: atribuicao

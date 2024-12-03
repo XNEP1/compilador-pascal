@@ -893,7 +893,7 @@ YY_RULE_SETUP
 #line 94 "./src/compilador.l"
 { simbolo = simb_while;
           strncpy (token, yytext, TAM_TOKEN);
-          IMPRIME(" do   ");
+          IMPRIME(" while   ");
           return WHILE;
 }
 	YY_BREAK

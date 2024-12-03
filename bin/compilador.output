@@ -146,10 +146,10 @@ Gramática
    74 comando_composto: T_BEGIN comandos T_END
 
    75 comandos: comando
-   76         | comandos comando
+   76         | comandos PONTO_E_VIRGULA comando
 
-   77 comando: NUMBER comando_sem_rotulo PONTO_E_VIRGULA
-   78        | comando_sem_rotulo PONTO_E_VIRGULA
+   77 comando: NUMBER comando_sem_rotulo
+   78        | comando_sem_rotulo
 
    79 comando_sem_rotulo: atribuicao
    80                   | chamada_procedimento
@@ -211,7 +211,7 @@ Terminais, com as regras onde eles aparecem
     ABRE_PARENTESES (303) 2 25 36 60 64
     FECHA_PARENTESES (304) 2 25 36 60 64
     VIRGULA (305) 12 15 35
-    PONTO_E_VIRGULA (306) 2 11 18 19 22 24 27 77 78
+    PONTO_E_VIRGULA (306) 2 11 18 19 22 24 27 76
     DOIS_PONTOS (307) 11 24 28 29 30
     PONTO (308) 2
     ABRE_COLCHETES (309) 57
@@ -714,7 +714,7 @@ Estado 40
 
 Estado 41
 
-   77 comando: NUMBER • comando_sem_rotulo PONTO_E_VIRGULA
+   77 comando: NUMBER • comando_sem_rotulo
 
     T_BEGIN  deslocar, e ir ao estado 34
     IF       deslocar, e ir ao estado 42
@@ -835,25 +835,10 @@ Estado 52
 Estado 53
 
    74 comando_composto: T_BEGIN comandos • T_END
-   76 comandos: comandos • comando
+   76 comandos: comandos • PONTO_E_VIRGULA comando
 
-    T_BEGIN  deslocar, e ir ao estado 34
-    T_END    deslocar, e ir ao estado 76
-    NUMBER   deslocar, e ir ao estado 41
-    IF       deslocar, e ir ao estado 42
-    GOTO     deslocar, e ir ao estado 43
-    WHILE    deslocar, e ir ao estado 44
-    IDENT    deslocar, e ir ao estado 45
-
-    atribuicao            ir ao estado 46
-    chamada_procedimento  ir ao estado 47
-    desvio                ir ao estado 48
-    if_then               ir ao estado 49
-    comando_condicional   ir ao estado 50
-    comando_repititivo    ir ao estado 51
-    comando_composto      ir ao estado 52
-    comando               ir ao estado 77
-    comando_sem_rotulo    ir ao estado 55
+    T_END            deslocar, e ir ao estado 76
+    PONTO_E_VIRGULA  deslocar, e ir ao estado 77
 
 
 Estado 54
@@ -865,27 +850,27 @@ Estado 54
 
 Estado 55
 
-   78 comando: comando_sem_rotulo • PONTO_E_VIRGULA
+   78 comando: comando_sem_rotulo •
 
-    PONTO_E_VIRGULA  deslocar, e ir ao estado 78
+    $padrão  reduzir usando a regra 78 (comando)
 
 
 Estado 56
 
    22 declaracao_procedimento: $@4 PROCEDURE IDENT • parametros_formais $@5 PONTO_E_VIRGULA bloco
 
-    ABRE_PARENTESES  deslocar, e ir ao estado 79
+    ABRE_PARENTESES  deslocar, e ir ao estado 78
 
-    parametros_formais  ir ao estado 80
+    parametros_formais  ir ao estado 79
 
 
 Estado 57
 
    24 declaracao_function: $@6 FUNCTION IDENT • parametros_formais DOIS_PONTOS IDENT PONTO_E_VIRGULA bloco
 
-    ABRE_PARENTESES  deslocar, e ir ao estado 79
+    ABRE_PARENTESES  deslocar, e ir ao estado 78
 
-    parametros_formais  ir ao estado 81
+    parametros_formais  ir ao estado 80
 
 
 Estado 58
@@ -897,9 +882,9 @@ Estado 58
 
 Estado 59
 
-   77 comando: NUMBER comando_sem_rotulo • PONTO_E_VIRGULA
+   77 comando: NUMBER comando_sem_rotulo •
 
-    PONTO_E_VIRGULA  deslocar, e ir ao estado 82
+    $padrão  reduzir usando a regra 77 (comando)
 
 
 Estado 60
@@ -920,7 +905,7 @@ Estado 61
     ABRE_PARENTESES  deslocar, e ir ao estado 64
     IDENT            deslocar, e ir ao estado 65
 
-    expressao       ir ao estado 83
+    expressao       ir ao estado 81
     sinal           ir ao estado 67
     variavel        ir ao estado 68
     chamada_funcao  ir ao estado 69
@@ -951,7 +936,7 @@ Estado 64
     ABRE_PARENTESES  deslocar, e ir ao estado 64
     IDENT            deslocar, e ir ao estado 65
 
-    expressao       ir ao estado 84
+    expressao       ir ao estado 82
     sinal           ir ao estado 67
     variavel        ir ao estado 68
     chamada_funcao  ir ao estado 69
@@ -963,8 +948,8 @@ Estado 65
    57         | IDENT • ABRE_COLCHETES lista_expressoes FECHA_COLCHETES
    64 chamada_funcao: IDENT • ABRE_PARENTESES lista_expressoes FECHA_PARENTESES
 
-    ABRE_PARENTESES  deslocar, e ir ao estado 85
-    ABRE_COLCHETES   deslocar, e ir ao estado 86
+    ABRE_PARENTESES  deslocar, e ir ao estado 83
+    ABRE_COLCHETES   deslocar, e ir ao estado 84
 
     $padrão  reduzir usando a regra 56 (variavel)
 
@@ -985,22 +970,22 @@ Estado 66
    51          | expressao • MENOR_IGUAL expressao
    67 if_then: IF expressao • $@13 THEN comando_sem_rotulo
 
-    SOMA         deslocar, e ir ao estado 87
-    SUB          deslocar, e ir ao estado 88
-    MUL          deslocar, e ir ao estado 89
-    DIV          deslocar, e ir ao estado 90
-    AND          deslocar, e ir ao estado 91
-    OR           deslocar, e ir ao estado 92
-    IGUAL        deslocar, e ir ao estado 93
-    DIFERENTE    deslocar, e ir ao estado 94
-    MENOR        deslocar, e ir ao estado 95
-    MENOR_IGUAL  deslocar, e ir ao estado 96
-    MAIOR        deslocar, e ir ao estado 97
-    MAIOR_IGUAL  deslocar, e ir ao estado 98
+    SOMA         deslocar, e ir ao estado 85
+    SUB          deslocar, e ir ao estado 86
+    MUL          deslocar, e ir ao estado 87
+    DIV          deslocar, e ir ao estado 88
+    AND          deslocar, e ir ao estado 89
+    OR           deslocar, e ir ao estado 90
+    IGUAL        deslocar, e ir ao estado 91
+    DIFERENTE    deslocar, e ir ao estado 92
+    MENOR        deslocar, e ir ao estado 93
+    MENOR_IGUAL  deslocar, e ir ao estado 94
+    MAIOR        deslocar, e ir ao estado 95
+    MAIOR_IGUAL  deslocar, e ir ao estado 96
 
     $padrão  reduzir usando a regra 66 ($@13)
 
-    $@13  ir ao estado 99
+    $@13  ir ao estado 97
 
 
 Estado 67
@@ -1014,7 +999,7 @@ Estado 67
     ABRE_PARENTESES  deslocar, e ir ao estado 64
     IDENT            deslocar, e ir ao estado 65
 
-    expressao       ir ao estado 100
+    expressao       ir ao estado 98
     sinal           ir ao estado 67
     variavel        ir ao estado 68
     chamada_funcao  ir ao estado 69
@@ -1052,7 +1037,7 @@ Estado 71
     ABRE_PARENTESES  deslocar, e ir ao estado 64
     IDENT            deslocar, e ir ao estado 65
 
-    expressao       ir ao estado 101
+    expressao       ir ao estado 99
     sinal           ir ao estado 67
     variavel        ir ao estado 68
     chamada_funcao  ir ao estado 69
@@ -1069,7 +1054,7 @@ Estado 72
     ABRE_PARENTESES  deslocar, e ir ao estado 64
     IDENT            deslocar, e ir ao estado 65
 
-    expressao       ir ao estado 102
+    expressao       ir ao estado 100
     sinal           ir ao estado 67
     variavel        ir ao estado 68
     chamada_funcao  ir ao estado 69
@@ -1079,7 +1064,7 @@ Estado 73
 
    60 chamada_procedimento: IDENT $@9 • ABRE_PARENTESES lista_expressoes FECHA_PARENTESES $@10
 
-    ABRE_PARENTESES  deslocar, e ir ao estado 103
+    ABRE_PARENTESES  deslocar, e ir ao estado 101
 
 
 Estado 74
@@ -1088,7 +1073,7 @@ Estado 74
 
     $padrão  reduzir usando a regra 62 ($@12)
 
-    $@12  ir ao estado 104
+    $@12  ir ao estado 102
 
 
 Estado 75
@@ -1097,7 +1082,7 @@ Estado 75
 
     $padrão  reduzir usando a regra 69 ($@14)
 
-    $@14  ir ao estado 105
+    $@14  ir ao estado 103
 
 
 Estado 76
@@ -1109,56 +1094,57 @@ Estado 76
 
 Estado 77
 
-   76 comandos: comandos comando •
+   76 comandos: comandos PONTO_E_VIRGULA • comando
 
-    $padrão  reduzir usando a regra 76 (comandos)
+    T_BEGIN  deslocar, e ir ao estado 34
+    NUMBER   deslocar, e ir ao estado 41
+    IF       deslocar, e ir ao estado 42
+    GOTO     deslocar, e ir ao estado 43
+    WHILE    deslocar, e ir ao estado 44
+    IDENT    deslocar, e ir ao estado 45
+
+    atribuicao            ir ao estado 46
+    chamada_procedimento  ir ao estado 47
+    desvio                ir ao estado 48
+    if_then               ir ao estado 49
+    comando_condicional   ir ao estado 50
+    comando_repititivo    ir ao estado 51
+    comando_composto      ir ao estado 52
+    comando               ir ao estado 104
+    comando_sem_rotulo    ir ao estado 55
 
 
 Estado 78
 
-   78 comando: comando_sem_rotulo PONTO_E_VIRGULA •
+   25 parametros_formais: ABRE_PARENTESES • lista_parametros_formais FECHA_PARENTESES
 
-    $padrão  reduzir usando a regra 78 (comando)
+    VAR       deslocar, e ir ao estado 105
+    FUNCTION  deslocar, e ir ao estado 106
+    IDENT     deslocar, e ir ao estado 7
+
+    lista_id_par              ir ao estado 107
+    montando_lista_id_par     ir ao estado 9
+    lista_parametros_formais  ir ao estado 108
+    secao_parametros_formais  ir ao estado 109
 
 
 Estado 79
-
-   25 parametros_formais: ABRE_PARENTESES • lista_parametros_formais FECHA_PARENTESES
-
-    VAR       deslocar, e ir ao estado 106
-    FUNCTION  deslocar, e ir ao estado 107
-    IDENT     deslocar, e ir ao estado 7
-
-    lista_id_par              ir ao estado 108
-    montando_lista_id_par     ir ao estado 9
-    lista_parametros_formais  ir ao estado 109
-    secao_parametros_formais  ir ao estado 110
-
-
-Estado 80
 
    22 declaracao_procedimento: $@4 PROCEDURE IDENT parametros_formais • $@5 PONTO_E_VIRGULA bloco
 
     $padrão  reduzir usando a regra 21 ($@5)
 
-    $@5  ir ao estado 111
+    $@5  ir ao estado 110
 
 
-Estado 81
+Estado 80
 
    24 declaracao_function: $@6 FUNCTION IDENT parametros_formais • DOIS_PONTOS IDENT PONTO_E_VIRGULA bloco
 
-    DOIS_PONTOS  deslocar, e ir ao estado 112
+    DOIS_PONTOS  deslocar, e ir ao estado 111
 
 
-Estado 82
-
-   77 comando: NUMBER comando_sem_rotulo PONTO_E_VIRGULA •
-
-    $padrão  reduzir usando a regra 77 (comando)
-
-
-Estado 83
+Estado 81
 
    39 expressao: NOT expressao •
    40          | expressao • MUL expressao
@@ -1177,7 +1163,7 @@ Estado 83
     $padrão  reduzir usando a regra 39 (expressao)
 
 
-Estado 84
+Estado 82
 
    36 expressao: ABRE_PARENTESES expressao • FECHA_PARENTESES
    40          | expressao • MUL expressao
@@ -1193,44 +1179,61 @@ Estado 84
    50          | expressao • MENOR expressao
    51          | expressao • MENOR_IGUAL expressao
 
-    SOMA              deslocar, e ir ao estado 87
-    SUB               deslocar, e ir ao estado 88
-    MUL               deslocar, e ir ao estado 89
-    DIV               deslocar, e ir ao estado 90
-    AND               deslocar, e ir ao estado 91
-    OR                deslocar, e ir ao estado 92
-    IGUAL             deslocar, e ir ao estado 93
-    DIFERENTE         deslocar, e ir ao estado 94
-    MENOR             deslocar, e ir ao estado 95
-    MENOR_IGUAL       deslocar, e ir ao estado 96
-    MAIOR             deslocar, e ir ao estado 97
-    MAIOR_IGUAL       deslocar, e ir ao estado 98
-    FECHA_PARENTESES  deslocar, e ir ao estado 113
+    SOMA              deslocar, e ir ao estado 85
+    SUB               deslocar, e ir ao estado 86
+    MUL               deslocar, e ir ao estado 87
+    DIV               deslocar, e ir ao estado 88
+    AND               deslocar, e ir ao estado 89
+    OR                deslocar, e ir ao estado 90
+    IGUAL             deslocar, e ir ao estado 91
+    DIFERENTE         deslocar, e ir ao estado 92
+    MENOR             deslocar, e ir ao estado 93
+    MENOR_IGUAL       deslocar, e ir ao estado 94
+    MAIOR             deslocar, e ir ao estado 95
+    MAIOR_IGUAL       deslocar, e ir ao estado 96
+    FECHA_PARENTESES  deslocar, e ir ao estado 112
 
 
-Estado 85
+Estado 83
 
    64 chamada_funcao: IDENT ABRE_PARENTESES • lista_expressoes FECHA_PARENTESES
 
     $padrão  reduzir usando a regra 32 ($@7)
 
-    lista_expressoes  ir ao estado 114
-    $@7               ir ao estado 115
+    lista_expressoes  ir ao estado 113
+    $@7               ir ao estado 114
 
 
-Estado 86
+Estado 84
 
    57 variavel: IDENT ABRE_COLCHETES • lista_expressoes FECHA_COLCHETES
 
     $padrão  reduzir usando a regra 32 ($@7)
 
-    lista_expressoes  ir ao estado 116
-    $@7               ir ao estado 115
+    lista_expressoes  ir ao estado 115
+    $@7               ir ao estado 114
 
 
-Estado 87
+Estado 85
 
    43 expressao: expressao SOMA • expressao
+
+    NUMBER           deslocar, e ir ao estado 60
+    NOT              deslocar, e ir ao estado 61
+    SOMA             deslocar, e ir ao estado 62
+    SUB              deslocar, e ir ao estado 63
+    ABRE_PARENTESES  deslocar, e ir ao estado 64
+    IDENT            deslocar, e ir ao estado 65
+
+    expressao       ir ao estado 116
+    sinal           ir ao estado 67
+    variavel        ir ao estado 68
+    chamada_funcao  ir ao estado 69
+
+
+Estado 86
+
+   44 expressao: expressao SUB • expressao
 
     NUMBER           deslocar, e ir ao estado 60
     NOT              deslocar, e ir ao estado 61
@@ -1245,9 +1248,9 @@ Estado 87
     chamada_funcao  ir ao estado 69
 
 
-Estado 88
+Estado 87
 
-   44 expressao: expressao SUB • expressao
+   40 expressao: expressao MUL • expressao
 
     NUMBER           deslocar, e ir ao estado 60
     NOT              deslocar, e ir ao estado 61
@@ -1262,9 +1265,9 @@ Estado 88
     chamada_funcao  ir ao estado 69
 
 
-Estado 89
+Estado 88
 
-   40 expressao: expressao MUL • expressao
+   41 expressao: expressao DIV • expressao
 
     NUMBER           deslocar, e ir ao estado 60
     NOT              deslocar, e ir ao estado 61
@@ -1279,9 +1282,9 @@ Estado 89
     chamada_funcao  ir ao estado 69
 
 
-Estado 90
+Estado 89
 
-   41 expressao: expressao DIV • expressao
+   42 expressao: expressao AND • expressao
 
     NUMBER           deslocar, e ir ao estado 60
     NOT              deslocar, e ir ao estado 61
@@ -1296,9 +1299,9 @@ Estado 90
     chamada_funcao  ir ao estado 69
 
 
-Estado 91
+Estado 90
 
-   42 expressao: expressao AND • expressao
+   45 expressao: expressao OR • expressao
 
     NUMBER           deslocar, e ir ao estado 60
     NOT              deslocar, e ir ao estado 61
@@ -1313,9 +1316,9 @@ Estado 91
     chamada_funcao  ir ao estado 69
 
 
-Estado 92
+Estado 91
 
-   45 expressao: expressao OR • expressao
+   46 expressao: expressao IGUAL • expressao
 
     NUMBER           deslocar, e ir ao estado 60
     NOT              deslocar, e ir ao estado 61
@@ -1330,9 +1333,9 @@ Estado 92
     chamada_funcao  ir ao estado 69
 
 
-Estado 93
+Estado 92
 
-   46 expressao: expressao IGUAL • expressao
+   47 expressao: expressao DIFERENTE • expressao
 
     NUMBER           deslocar, e ir ao estado 60
     NOT              deslocar, e ir ao estado 61
@@ -1347,9 +1350,9 @@ Estado 93
     chamada_funcao  ir ao estado 69
 
 
-Estado 94
+Estado 93
 
-   47 expressao: expressao DIFERENTE • expressao
+   50 expressao: expressao MENOR • expressao
 
     NUMBER           deslocar, e ir ao estado 60
     NOT              deslocar, e ir ao estado 61
@@ -1364,9 +1367,9 @@ Estado 94
     chamada_funcao  ir ao estado 69
 
 
-Estado 95
+Estado 94
 
-   50 expressao: expressao MENOR • expressao
+   51 expressao: expressao MENOR_IGUAL • expressao
 
     NUMBER           deslocar, e ir ao estado 60
     NOT              deslocar, e ir ao estado 61
@@ -1381,9 +1384,9 @@ Estado 95
     chamada_funcao  ir ao estado 69
 
 
-Estado 96
+Estado 95
 
-   51 expressao: expressao MENOR_IGUAL • expressao
+   48 expressao: expressao MAIOR • expressao
 
     NUMBER           deslocar, e ir ao estado 60
     NOT              deslocar, e ir ao estado 61
@@ -1398,9 +1401,9 @@ Estado 96
     chamada_funcao  ir ao estado 69
 
 
-Estado 97
+Estado 96
 
-   48 expressao: expressao MAIOR • expressao
+   49 expressao: expressao MAIOR_IGUAL • expressao
 
     NUMBER           deslocar, e ir ao estado 60
     NOT              deslocar, e ir ao estado 61
@@ -1415,31 +1418,14 @@ Estado 97
     chamada_funcao  ir ao estado 69
 
 
-Estado 98
-
-   49 expressao: expressao MAIOR_IGUAL • expressao
-
-    NUMBER           deslocar, e ir ao estado 60
-    NOT              deslocar, e ir ao estado 61
-    SOMA             deslocar, e ir ao estado 62
-    SUB              deslocar, e ir ao estado 63
-    ABRE_PARENTESES  deslocar, e ir ao estado 64
-    IDENT            deslocar, e ir ao estado 65
-
-    expressao       ir ao estado 128
-    sinal           ir ao estado 67
-    variavel        ir ao estado 68
-    chamada_funcao  ir ao estado 69
-
-
-Estado 99
+Estado 97
 
    67 if_then: IF expressao $@13 • THEN comando_sem_rotulo
 
-    THEN  deslocar, e ir ao estado 129
+    THEN  deslocar, e ir ao estado 128
 
 
-Estado 100
+Estado 98
 
    38 expressao: sinal expressao •
    40          | expressao • MUL expressao
@@ -1458,7 +1444,7 @@ Estado 100
     $padrão  reduzir usando a regra 38 (expressao)
 
 
-Estado 101
+Estado 99
 
    40 expressao: expressao • MUL expressao
    41          | expressao • DIV expressao
@@ -1474,22 +1460,22 @@ Estado 101
    51          | expressao • MENOR_IGUAL expressao
    73 comando_repititivo: WHILE $@15 expressao • DO $@16 comando_sem_rotulo
 
-    DO           deslocar, e ir ao estado 130
-    SOMA         deslocar, e ir ao estado 87
-    SUB          deslocar, e ir ao estado 88
-    MUL          deslocar, e ir ao estado 89
-    DIV          deslocar, e ir ao estado 90
-    AND          deslocar, e ir ao estado 91
-    OR           deslocar, e ir ao estado 92
-    IGUAL        deslocar, e ir ao estado 93
-    DIFERENTE    deslocar, e ir ao estado 94
-    MENOR        deslocar, e ir ao estado 95
-    MENOR_IGUAL  deslocar, e ir ao estado 96
-    MAIOR        deslocar, e ir ao estado 97
-    MAIOR_IGUAL  deslocar, e ir ao estado 98
+    DO           deslocar, e ir ao estado 129
+    SOMA         deslocar, e ir ao estado 85
+    SUB          deslocar, e ir ao estado 86
+    MUL          deslocar, e ir ao estado 87
+    DIV          deslocar, e ir ao estado 88
+    AND          deslocar, e ir ao estado 89
+    OR           deslocar, e ir ao estado 90
+    IGUAL        deslocar, e ir ao estado 91
+    DIFERENTE    deslocar, e ir ao estado 92
+    MENOR        deslocar, e ir ao estado 93
+    MENOR_IGUAL  deslocar, e ir ao estado 94
+    MAIOR        deslocar, e ir ao estado 95
+    MAIOR_IGUAL  deslocar, e ir ao estado 96
 
 
-Estado 102
+Estado 100
 
    31 atribuicao: IDENT ATRIBUICAO expressao •
    40 expressao: expressao • MUL expressao
@@ -1505,40 +1491,40 @@ Estado 102
    50          | expressao • MENOR expressao
    51          | expressao • MENOR_IGUAL expressao
 
-    SOMA         deslocar, e ir ao estado 87
-    SUB          deslocar, e ir ao estado 88
-    MUL          deslocar, e ir ao estado 89
-    DIV          deslocar, e ir ao estado 90
-    AND          deslocar, e ir ao estado 91
-    OR           deslocar, e ir ao estado 92
-    IGUAL        deslocar, e ir ao estado 93
-    DIFERENTE    deslocar, e ir ao estado 94
-    MENOR        deslocar, e ir ao estado 95
-    MENOR_IGUAL  deslocar, e ir ao estado 96
-    MAIOR        deslocar, e ir ao estado 97
-    MAIOR_IGUAL  deslocar, e ir ao estado 98
+    SOMA         deslocar, e ir ao estado 85
+    SUB          deslocar, e ir ao estado 86
+    MUL          deslocar, e ir ao estado 87
+    DIV          deslocar, e ir ao estado 88
+    AND          deslocar, e ir ao estado 89
+    OR           deslocar, e ir ao estado 90
+    IGUAL        deslocar, e ir ao estado 91
+    DIFERENTE    deslocar, e ir ao estado 92
+    MENOR        deslocar, e ir ao estado 93
+    MENOR_IGUAL  deslocar, e ir ao estado 94
+    MAIOR        deslocar, e ir ao estado 95
+    MAIOR_IGUAL  deslocar, e ir ao estado 96
 
     $padrão  reduzir usando a regra 31 (atribuicao)
 
 
-Estado 103
+Estado 101
 
    60 chamada_procedimento: IDENT $@9 ABRE_PARENTESES • lista_expressoes FECHA_PARENTESES $@10
 
     $padrão  reduzir usando a regra 32 ($@7)
 
-    lista_expressoes  ir ao estado 131
-    $@7               ir ao estado 115
+    lista_expressoes  ir ao estado 130
+    $@7               ir ao estado 114
 
 
-Estado 104
+Estado 102
 
    63 chamada_procedimento: IDENT $@11 $@12 •
 
     $padrão  reduzir usando a regra 63 (chamada_procedimento)
 
 
-Estado 105
+Estado 103
 
    70 comando_condicional: if_then ELSE $@14 • comando_sem_rotulo
 
@@ -1555,12 +1541,29 @@ Estado 105
     comando_condicional   ir ao estado 50
     comando_repititivo    ir ao estado 51
     comando_composto      ir ao estado 52
-    comando_sem_rotulo    ir ao estado 132
+    comando_sem_rotulo    ir ao estado 131
+
+
+Estado 104
+
+   76 comandos: comandos PONTO_E_VIRGULA comando •
+
+    $padrão  reduzir usando a regra 76 (comandos)
+
+
+Estado 105
+
+   28 secao_parametros_formais: VAR • lista_id_par DOIS_PONTOS IDENT
+
+    IDENT  deslocar, e ir ao estado 7
+
+    lista_id_par           ir ao estado 132
+    montando_lista_id_par  ir ao estado 9
 
 
 Estado 106
 
-   28 secao_parametros_formais: VAR • lista_id_par DOIS_PONTOS IDENT
+   30 secao_parametros_formais: FUNCTION • lista_id_par DOIS_PONTOS IDENT
 
     IDENT  deslocar, e ir ao estado 7
 
@@ -1570,68 +1573,58 @@ Estado 106
 
 Estado 107
 
-   30 secao_parametros_formais: FUNCTION • lista_id_par DOIS_PONTOS IDENT
+   29 secao_parametros_formais: lista_id_par • DOIS_PONTOS IDENT
 
-    IDENT  deslocar, e ir ao estado 7
-
-    lista_id_par           ir ao estado 134
-    montando_lista_id_par  ir ao estado 9
+    DOIS_PONTOS  deslocar, e ir ao estado 134
 
 
 Estado 108
 
-   29 secao_parametros_formais: lista_id_par • DOIS_PONTOS IDENT
-
-    DOIS_PONTOS  deslocar, e ir ao estado 135
-
-
-Estado 109
-
    25 parametros_formais: ABRE_PARENTESES lista_parametros_formais • FECHA_PARENTESES
    27 lista_parametros_formais: lista_parametros_formais • PONTO_E_VIRGULA secao_parametros_formais
 
-    FECHA_PARENTESES  deslocar, e ir ao estado 136
-    PONTO_E_VIRGULA   deslocar, e ir ao estado 137
+    FECHA_PARENTESES  deslocar, e ir ao estado 135
+    PONTO_E_VIRGULA   deslocar, e ir ao estado 136
 
 
-Estado 110
+Estado 109
 
    26 lista_parametros_formais: secao_parametros_formais •
 
     $padrão  reduzir usando a regra 26 (lista_parametros_formais)
 
 
-Estado 111
+Estado 110
 
    22 declaracao_procedimento: $@4 PROCEDURE IDENT parametros_formais $@5 • PONTO_E_VIRGULA bloco
 
-    PONTO_E_VIRGULA  deslocar, e ir ao estado 138
+    PONTO_E_VIRGULA  deslocar, e ir ao estado 137
 
 
-Estado 112
+Estado 111
 
    24 declaracao_function: $@6 FUNCTION IDENT parametros_formais DOIS_PONTOS • IDENT PONTO_E_VIRGULA bloco
 
-    IDENT  deslocar, e ir ao estado 139
+    IDENT  deslocar, e ir ao estado 138
 
 
-Estado 113
+Estado 112
 
    36 expressao: ABRE_PARENTESES expressao FECHA_PARENTESES •
 
     $padrão  reduzir usando a regra 36 (expressao)
 
 
-Estado 114
+Estado 113
 
    35 lista_expressoes: lista_expressoes • VIRGULA $@8 expressao
    64 chamada_funcao: IDENT ABRE_PARENTESES lista_expressoes • FECHA_PARENTESES
 
-    FECHA_PARENTESES  deslocar, e ir ao estado 140
-    VIRGULA           deslocar, e ir ao estado 141
+    FECHA_PARENTESES  deslocar, e ir ao estado 139
+    VIRGULA           deslocar, e ir ao estado 140
 
 
-Estado 115
+Estado 114
 
    33 lista_expressoes: $@7 • expressao
 
@@ -1642,22 +1635,22 @@ Estado 115
     ABRE_PARENTESES  deslocar, e ir ao estado 64
     IDENT            deslocar, e ir ao estado 65
 
-    expressao       ir ao estado 142
+    expressao       ir ao estado 141
     sinal           ir ao estado 67
     variavel        ir ao estado 68
     chamada_funcao  ir ao estado 69
 
 
-Estado 116
+Estado 115
 
    35 lista_expressoes: lista_expressoes • VIRGULA $@8 expressao
    57 variavel: IDENT ABRE_COLCHETES lista_expressoes • FECHA_COLCHETES
 
-    VIRGULA          deslocar, e ir ao estado 141
-    FECHA_COLCHETES  deslocar, e ir ao estado 143
+    VIRGULA          deslocar, e ir ao estado 140
+    FECHA_COLCHETES  deslocar, e ir ao estado 142
 
 
-Estado 117
+Estado 116
 
    40 expressao: expressao • MUL expressao
    41          | expressao • DIV expressao
@@ -1673,14 +1666,14 @@ Estado 117
    50          | expressao • MENOR expressao
    51          | expressao • MENOR_IGUAL expressao
 
-    MUL  deslocar, e ir ao estado 89
-    DIV  deslocar, e ir ao estado 90
-    AND  deslocar, e ir ao estado 91
+    MUL  deslocar, e ir ao estado 87
+    DIV  deslocar, e ir ao estado 88
+    AND  deslocar, e ir ao estado 89
 
     $padrão  reduzir usando a regra 43 (expressao)
 
 
-Estado 118
+Estado 117
 
    40 expressao: expressao • MUL expressao
    41          | expressao • DIV expressao
@@ -1696,14 +1689,14 @@ Estado 118
    50          | expressao • MENOR expressao
    51          | expressao • MENOR_IGUAL expressao
 
-    MUL  deslocar, e ir ao estado 89
-    DIV  deslocar, e ir ao estado 90
-    AND  deslocar, e ir ao estado 91
+    MUL  deslocar, e ir ao estado 87
+    DIV  deslocar, e ir ao estado 88
+    AND  deslocar, e ir ao estado 89
 
     $padrão  reduzir usando a regra 44 (expressao)
 
 
-Estado 119
+Estado 118
 
    40 expressao: expressao • MUL expressao
    40          | expressao MUL expressao •
@@ -1722,7 +1715,7 @@ Estado 119
     $padrão  reduzir usando a regra 40 (expressao)
 
 
-Estado 120
+Estado 119
 
    40 expressao: expressao • MUL expressao
    41          | expressao • DIV expressao
@@ -1741,7 +1734,7 @@ Estado 120
     $padrão  reduzir usando a regra 41 (expressao)
 
 
-Estado 121
+Estado 120
 
    40 expressao: expressao • MUL expressao
    41          | expressao • DIV expressao
@@ -1760,7 +1753,7 @@ Estado 121
     $padrão  reduzir usando a regra 42 (expressao)
 
 
-Estado 122
+Estado 121
 
    40 expressao: expressao • MUL expressao
    41          | expressao • DIV expressao
@@ -1776,14 +1769,14 @@ Estado 122
    50          | expressao • MENOR expressao
    51          | expressao • MENOR_IGUAL expressao
 
-    MUL  deslocar, e ir ao estado 89
-    DIV  deslocar, e ir ao estado 90
-    AND  deslocar, e ir ao estado 91
+    MUL  deslocar, e ir ao estado 87
+    DIV  deslocar, e ir ao estado 88
+    AND  deslocar, e ir ao estado 89
 
     $padrão  reduzir usando a regra 45 (expressao)
 
 
-Estado 123
+Estado 122
 
    40 expressao: expressao • MUL expressao
    41          | expressao • DIV expressao
@@ -1799,17 +1792,17 @@ Estado 123
    50          | expressao • MENOR expressao
    51          | expressao • MENOR_IGUAL expressao
 
-    SOMA  deslocar, e ir ao estado 87
-    SUB   deslocar, e ir ao estado 88
-    MUL   deslocar, e ir ao estado 89
-    DIV   deslocar, e ir ao estado 90
-    AND   deslocar, e ir ao estado 91
-    OR    deslocar, e ir ao estado 92
+    SOMA  deslocar, e ir ao estado 85
+    SUB   deslocar, e ir ao estado 86
+    MUL   deslocar, e ir ao estado 87
+    DIV   deslocar, e ir ao estado 88
+    AND   deslocar, e ir ao estado 89
+    OR    deslocar, e ir ao estado 90
 
     $padrão  reduzir usando a regra 46 (expressao)
 
 
-Estado 124
+Estado 123
 
    40 expressao: expressao • MUL expressao
    41          | expressao • DIV expressao
@@ -1825,17 +1818,17 @@ Estado 124
    50          | expressao • MENOR expressao
    51          | expressao • MENOR_IGUAL expressao
 
-    SOMA  deslocar, e ir ao estado 87
-    SUB   deslocar, e ir ao estado 88
-    MUL   deslocar, e ir ao estado 89
-    DIV   deslocar, e ir ao estado 90
-    AND   deslocar, e ir ao estado 91
-    OR    deslocar, e ir ao estado 92
+    SOMA  deslocar, e ir ao estado 85
+    SUB   deslocar, e ir ao estado 86
+    MUL   deslocar, e ir ao estado 87
+    DIV   deslocar, e ir ao estado 88
+    AND   deslocar, e ir ao estado 89
+    OR    deslocar, e ir ao estado 90
 
     $padrão  reduzir usando a regra 47 (expressao)
 
 
-Estado 125
+Estado 124
 
    40 expressao: expressao • MUL expressao
    41          | expressao • DIV expressao
@@ -1851,17 +1844,17 @@ Estado 125
    50          | expressao MENOR expressao •
    51          | expressao • MENOR_IGUAL expressao
 
-    SOMA  deslocar, e ir ao estado 87
-    SUB   deslocar, e ir ao estado 88
-    MUL   deslocar, e ir ao estado 89
-    DIV   deslocar, e ir ao estado 90
-    AND   deslocar, e ir ao estado 91
-    OR    deslocar, e ir ao estado 92
+    SOMA  deslocar, e ir ao estado 85
+    SUB   deslocar, e ir ao estado 86
+    MUL   deslocar, e ir ao estado 87
+    DIV   deslocar, e ir ao estado 88
+    AND   deslocar, e ir ao estado 89
+    OR    deslocar, e ir ao estado 90
 
     $padrão  reduzir usando a regra 50 (expressao)
 
 
-Estado 126
+Estado 125
 
    40 expressao: expressao • MUL expressao
    41          | expressao • DIV expressao
@@ -1877,17 +1870,17 @@ Estado 126
    51          | expressao • MENOR_IGUAL expressao
    51          | expressao MENOR_IGUAL expressao •
 
-    SOMA  deslocar, e ir ao estado 87
-    SUB   deslocar, e ir ao estado 88
-    MUL   deslocar, e ir ao estado 89
-    DIV   deslocar, e ir ao estado 90
-    AND   deslocar, e ir ao estado 91
-    OR    deslocar, e ir ao estado 92
+    SOMA  deslocar, e ir ao estado 85
+    SUB   deslocar, e ir ao estado 86
+    MUL   deslocar, e ir ao estado 87
+    DIV   deslocar, e ir ao estado 88
+    AND   deslocar, e ir ao estado 89
+    OR    deslocar, e ir ao estado 90
 
     $padrão  reduzir usando a regra 51 (expressao)
 
 
-Estado 127
+Estado 126
 
    40 expressao: expressao • MUL expressao
    41          | expressao • DIV expressao
@@ -1903,17 +1896,17 @@ Estado 127
    50          | expressao • MENOR expressao
    51          | expressao • MENOR_IGUAL expressao
 
-    SOMA  deslocar, e ir ao estado 87
-    SUB   deslocar, e ir ao estado 88
-    MUL   deslocar, e ir ao estado 89
-    DIV   deslocar, e ir ao estado 90
-    AND   deslocar, e ir ao estado 91
-    OR    deslocar, e ir ao estado 92
+    SOMA  deslocar, e ir ao estado 85
+    SUB   deslocar, e ir ao estado 86
+    MUL   deslocar, e ir ao estado 87
+    DIV   deslocar, e ir ao estado 88
+    AND   deslocar, e ir ao estado 89
+    OR    deslocar, e ir ao estado 90
 
     $padrão  reduzir usando a regra 48 (expressao)
 
 
-Estado 128
+Estado 127
 
    40 expressao: expressao • MUL expressao
    41          | expressao • DIV expressao
@@ -1929,17 +1922,17 @@ Estado 128
    50          | expressao • MENOR expressao
    51          | expressao • MENOR_IGUAL expressao
 
-    SOMA  deslocar, e ir ao estado 87
-    SUB   deslocar, e ir ao estado 88
-    MUL   deslocar, e ir ao estado 89
-    DIV   deslocar, e ir ao estado 90
-    AND   deslocar, e ir ao estado 91
-    OR    deslocar, e ir ao estado 92
+    SOMA  deslocar, e ir ao estado 85
+    SUB   deslocar, e ir ao estado 86
+    MUL   deslocar, e ir ao estado 87
+    DIV   deslocar, e ir ao estado 88
+    AND   deslocar, e ir ao estado 89
+    OR    deslocar, e ir ao estado 90
 
     $padrão  reduzir usando a regra 49 (expressao)
 
 
-Estado 129
+Estado 128
 
    67 if_then: IF expressao $@13 THEN • comando_sem_rotulo
 
@@ -1956,76 +1949,76 @@ Estado 129
     comando_condicional   ir ao estado 50
     comando_repititivo    ir ao estado 51
     comando_composto      ir ao estado 52
-    comando_sem_rotulo    ir ao estado 144
+    comando_sem_rotulo    ir ao estado 143
 
 
-Estado 130
+Estado 129
 
    73 comando_repititivo: WHILE $@15 expressao DO • $@16 comando_sem_rotulo
 
     $padrão  reduzir usando a regra 72 ($@16)
 
-    $@16  ir ao estado 145
+    $@16  ir ao estado 144
 
 
-Estado 131
+Estado 130
 
    35 lista_expressoes: lista_expressoes • VIRGULA $@8 expressao
    60 chamada_procedimento: IDENT $@9 ABRE_PARENTESES lista_expressoes • FECHA_PARENTESES $@10
 
-    FECHA_PARENTESES  deslocar, e ir ao estado 146
-    VIRGULA           deslocar, e ir ao estado 141
+    FECHA_PARENTESES  deslocar, e ir ao estado 145
+    VIRGULA           deslocar, e ir ao estado 140
 
 
-Estado 132
+Estado 131
 
    70 comando_condicional: if_then ELSE $@14 comando_sem_rotulo •
 
     $padrão  reduzir usando a regra 70 (comando_condicional)
 
 
-Estado 133
+Estado 132
 
    28 secao_parametros_formais: VAR lista_id_par • DOIS_PONTOS IDENT
+
+    DOIS_PONTOS  deslocar, e ir ao estado 146
+
+
+Estado 133
+
+   30 secao_parametros_formais: FUNCTION lista_id_par • DOIS_PONTOS IDENT
 
     DOIS_PONTOS  deslocar, e ir ao estado 147
 
 
 Estado 134
 
-   30 secao_parametros_formais: FUNCTION lista_id_par • DOIS_PONTOS IDENT
+   29 secao_parametros_formais: lista_id_par DOIS_PONTOS • IDENT
 
-    DOIS_PONTOS  deslocar, e ir ao estado 148
+    IDENT  deslocar, e ir ao estado 148
 
 
 Estado 135
-
-   29 secao_parametros_formais: lista_id_par DOIS_PONTOS • IDENT
-
-    IDENT  deslocar, e ir ao estado 149
-
-
-Estado 136
 
    25 parametros_formais: ABRE_PARENTESES lista_parametros_formais FECHA_PARENTESES •
 
     $padrão  reduzir usando a regra 25 (parametros_formais)
 
 
-Estado 137
+Estado 136
 
    27 lista_parametros_formais: lista_parametros_formais PONTO_E_VIRGULA • secao_parametros_formais
 
-    VAR       deslocar, e ir ao estado 106
-    FUNCTION  deslocar, e ir ao estado 107
+    VAR       deslocar, e ir ao estado 105
+    FUNCTION  deslocar, e ir ao estado 106
     IDENT     deslocar, e ir ao estado 7
 
-    lista_id_par              ir ao estado 108
+    lista_id_par              ir ao estado 107
     montando_lista_id_par     ir ao estado 9
-    secao_parametros_formais  ir ao estado 150
+    secao_parametros_formais  ir ao estado 149
 
 
-Estado 138
+Estado 137
 
    22 declaracao_procedimento: $@4 PROCEDURE IDENT parametros_formais $@5 PONTO_E_VIRGULA • bloco
 
@@ -2033,35 +2026,35 @@ Estado 138
 
     $padrão  reduzir usando a regra 7 (var)
 
-    bloco               ir ao estado 151
+    bloco               ir ao estado 150
     parte_declara_vars  ir ao estado 16
     var                 ir ao estado 17
 
 
-Estado 139
+Estado 138
 
    24 declaracao_function: $@6 FUNCTION IDENT parametros_formais DOIS_PONTOS IDENT • PONTO_E_VIRGULA bloco
 
-    PONTO_E_VIRGULA  deslocar, e ir ao estado 152
+    PONTO_E_VIRGULA  deslocar, e ir ao estado 151
 
 
-Estado 140
+Estado 139
 
    64 chamada_funcao: IDENT ABRE_PARENTESES lista_expressoes FECHA_PARENTESES •
 
     $padrão  reduzir usando a regra 64 (chamada_funcao)
 
 
-Estado 141
+Estado 140
 
    35 lista_expressoes: lista_expressoes VIRGULA • $@8 expressao
 
     $padrão  reduzir usando a regra 34 ($@8)
 
-    $@8  ir ao estado 153
+    $@8  ir ao estado 152
 
 
-Estado 142
+Estado 141
 
    33 lista_expressoes: $@7 expressao •
    40 expressao: expressao • MUL expressao
@@ -2077,37 +2070,37 @@ Estado 142
    50          | expressao • MENOR expressao
    51          | expressao • MENOR_IGUAL expressao
 
-    SOMA         deslocar, e ir ao estado 87
-    SUB          deslocar, e ir ao estado 88
-    MUL          deslocar, e ir ao estado 89
-    DIV          deslocar, e ir ao estado 90
-    AND          deslocar, e ir ao estado 91
-    OR           deslocar, e ir ao estado 92
-    IGUAL        deslocar, e ir ao estado 93
-    DIFERENTE    deslocar, e ir ao estado 94
-    MENOR        deslocar, e ir ao estado 95
-    MENOR_IGUAL  deslocar, e ir ao estado 96
-    MAIOR        deslocar, e ir ao estado 97
-    MAIOR_IGUAL  deslocar, e ir ao estado 98
+    SOMA         deslocar, e ir ao estado 85
+    SUB          deslocar, e ir ao estado 86
+    MUL          deslocar, e ir ao estado 87
+    DIV          deslocar, e ir ao estado 88
+    AND          deslocar, e ir ao estado 89
+    OR           deslocar, e ir ao estado 90
+    IGUAL        deslocar, e ir ao estado 91
+    DIFERENTE    deslocar, e ir ao estado 92
+    MENOR        deslocar, e ir ao estado 93
+    MENOR_IGUAL  deslocar, e ir ao estado 94
+    MAIOR        deslocar, e ir ao estado 95
+    MAIOR_IGUAL  deslocar, e ir ao estado 96
 
     $padrão  reduzir usando a regra 33 (lista_expressoes)
 
 
-Estado 143
+Estado 142
 
    57 variavel: IDENT ABRE_COLCHETES lista_expressoes FECHA_COLCHETES •
 
     $padrão  reduzir usando a regra 57 (variavel)
 
 
-Estado 144
+Estado 143
 
    67 if_then: IF expressao $@13 THEN comando_sem_rotulo •
 
     $padrão  reduzir usando a regra 67 (if_then)
 
 
-Estado 145
+Estado 144
 
    73 comando_repititivo: WHILE $@15 expressao DO $@16 • comando_sem_rotulo
 
@@ -2124,54 +2117,54 @@ Estado 145
     comando_condicional   ir ao estado 50
     comando_repititivo    ir ao estado 51
     comando_composto      ir ao estado 52
-    comando_sem_rotulo    ir ao estado 154
+    comando_sem_rotulo    ir ao estado 153
 
 
-Estado 146
+Estado 145
 
    60 chamada_procedimento: IDENT $@9 ABRE_PARENTESES lista_expressoes FECHA_PARENTESES • $@10
 
     $padrão  reduzir usando a regra 59 ($@10)
 
-    $@10  ir ao estado 155
+    $@10  ir ao estado 154
+
+
+Estado 146
+
+   28 secao_parametros_formais: VAR lista_id_par DOIS_PONTOS • IDENT
+
+    IDENT  deslocar, e ir ao estado 155
 
 
 Estado 147
 
-   28 secao_parametros_formais: VAR lista_id_par DOIS_PONTOS • IDENT
+   30 secao_parametros_formais: FUNCTION lista_id_par DOIS_PONTOS • IDENT
 
     IDENT  deslocar, e ir ao estado 156
 
 
 Estado 148
 
-   30 secao_parametros_formais: FUNCTION lista_id_par DOIS_PONTOS • IDENT
-
-    IDENT  deslocar, e ir ao estado 157
-
-
-Estado 149
-
    29 secao_parametros_formais: lista_id_par DOIS_PONTOS IDENT •
 
     $padrão  reduzir usando a regra 29 (secao_parametros_formais)
 
 
-Estado 150
+Estado 149
 
    27 lista_parametros_formais: lista_parametros_formais PONTO_E_VIRGULA secao_parametros_formais •
 
     $padrão  reduzir usando a regra 27 (lista_parametros_formais)
 
 
-Estado 151
+Estado 150
 
    22 declaracao_procedimento: $@4 PROCEDURE IDENT parametros_formais $@5 PONTO_E_VIRGULA bloco •
 
     $padrão  reduzir usando a regra 22 (declaracao_procedimento)
 
 
-Estado 152
+Estado 151
 
    24 declaracao_function: $@6 FUNCTION IDENT parametros_formais DOIS_PONTOS IDENT PONTO_E_VIRGULA • bloco
 
@@ -2179,12 +2172,12 @@ Estado 152
 
     $padrão  reduzir usando a regra 7 (var)
 
-    bloco               ir ao estado 158
+    bloco               ir ao estado 157
     parte_declara_vars  ir ao estado 16
     var                 ir ao estado 17
 
 
-Estado 153
+Estado 152
 
    35 lista_expressoes: lista_expressoes VIRGULA $@8 • expressao
 
@@ -2195,48 +2188,48 @@ Estado 153
     ABRE_PARENTESES  deslocar, e ir ao estado 64
     IDENT            deslocar, e ir ao estado 65
 
-    expressao       ir ao estado 159
+    expressao       ir ao estado 158
     sinal           ir ao estado 67
     variavel        ir ao estado 68
     chamada_funcao  ir ao estado 69
 
 
-Estado 154
+Estado 153
 
    73 comando_repititivo: WHILE $@15 expressao DO $@16 comando_sem_rotulo •
 
     $padrão  reduzir usando a regra 73 (comando_repititivo)
 
 
-Estado 155
+Estado 154
 
    60 chamada_procedimento: IDENT $@9 ABRE_PARENTESES lista_expressoes FECHA_PARENTESES $@10 •
 
     $padrão  reduzir usando a regra 60 (chamada_procedimento)
 
 
-Estado 156
+Estado 155
 
    28 secao_parametros_formais: VAR lista_id_par DOIS_PONTOS IDENT •
 
     $padrão  reduzir usando a regra 28 (secao_parametros_formais)
 
 
-Estado 157
+Estado 156
 
    30 secao_parametros_formais: FUNCTION lista_id_par DOIS_PONTOS IDENT •
 
     $padrão  reduzir usando a regra 30 (secao_parametros_formais)
 
 
-Estado 158
+Estado 157
 
    24 declaracao_function: $@6 FUNCTION IDENT parametros_formais DOIS_PONTOS IDENT PONTO_E_VIRGULA bloco •
 
     $padrão  reduzir usando a regra 24 (declaracao_function)
 
 
-Estado 159
+Estado 158
 
    35 lista_expressoes: lista_expressoes VIRGULA $@8 expressao •
    40 expressao: expressao • MUL expressao
@@ -2252,17 +2245,17 @@ Estado 159
    50          | expressao • MENOR expressao
    51          | expressao • MENOR_IGUAL expressao
 
-    SOMA         deslocar, e ir ao estado 87
-    SUB          deslocar, e ir ao estado 88
-    MUL          deslocar, e ir ao estado 89
-    DIV          deslocar, e ir ao estado 90
-    AND          deslocar, e ir ao estado 91
-    OR           deslocar, e ir ao estado 92
-    IGUAL        deslocar, e ir ao estado 93
-    DIFERENTE    deslocar, e ir ao estado 94
-    MENOR        deslocar, e ir ao estado 95
-    MENOR_IGUAL  deslocar, e ir ao estado 96
-    MAIOR        deslocar, e ir ao estado 97
-    MAIOR_IGUAL  deslocar, e ir ao estado 98
+    SOMA         deslocar, e ir ao estado 85
+    SUB          deslocar, e ir ao estado 86
+    MUL          deslocar, e ir ao estado 87
+    DIV          deslocar, e ir ao estado 88
+    AND          deslocar, e ir ao estado 89
+    OR           deslocar, e ir ao estado 90
+    IGUAL        deslocar, e ir ao estado 91
+    DIFERENTE    deslocar, e ir ao estado 92
+    MENOR        deslocar, e ir ao estado 93
+    MENOR_IGUAL  deslocar, e ir ao estado 94
+    MAIOR        deslocar, e ir ao estado 95
+    MAIOR_IGUAL  deslocar, e ir ao estado 96
 
     $padrão  reduzir usando a regra 35 (lista_expressoes)
