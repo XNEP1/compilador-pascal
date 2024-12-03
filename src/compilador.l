@@ -93,7 +93,7 @@ array { simbolo = simb_array;
 
 while { simbolo = simb_while;
           strncpy (token, yytext, TAM_TOKEN);
-          IMPRIME(" do   ");
+          IMPRIME(" while   ");
           return WHILE;
 }
 

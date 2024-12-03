@@ -1,50 +1,29 @@
      INPP
+     AMEM 2
      AMEM 3
-     AMEM 2
-     DSVS R1
-R0: ENPR 1 
-     AMEM 2
-     CRCT 10
-     ARMZ 1,0
-     CRCT 61
-     ARMI 1,-5
-     CRVL 1,0
-     CRVI 1,-5
-     SOMA
-     ARMI 1,-5
-     CRCT 62
-     ARMZ 1,-4
-     DMEM 2
-     RTPR 1,2
-R1: NADA 
      CRVL 0,0
-     CRVL 0,1
      LEIT
      ARMI 0,1
-     LEIT
-     ARMI 0,0
-     CRVL 0,0
-     CRCT 40
-     SOMA
-     CRVL 0,1
-     CRCT 8
-     SOMA
-     IMPR
-     IMPR
-     CRCT 10
+     CRCT 0
      ARMZ 0,0
-     CRCT 20
+     CRCT 1
      ARMZ 0,1
-     CREN 0,0
+     CRCT 1
+     ARMZ 0,1
+R0: NADA 
      CRVL 0,1
-     CHPR R0,0
-     CRVL 0,1
-     ARMZ 0,2
+     CRVL 0,0
+     CMEG
+     DSVF R1
      CRVL 0,0
      CRVL 0,1
+     SOMA
+     ARMZ 0,2
+     CRVL 0,1
+     ARMZ 0,0
      CRVL 0,2
-     IMPR
-     IMPR
-     IMPR
-     DMEM 5
-     PARA
+     ARMZ 0,1
+     CRVL 0,1
+     CRCT 1
+     SOMA
+     ARMZ 0,1
