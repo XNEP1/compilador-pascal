@@ -10,7 +10,8 @@ var a, b, c: integer;
         b:=62;
     end;
 begin
-    a:=10 + 5 * (10 + 5);
+    read(a,b);
+    write(a+40, b+8);
     a:= 10;
     b:= 20;
     
@@ -18,6 +19,6 @@ begin
 
     c := b;
 
-    write(a,b,c); // deve ser igual a 71, 20 e 20; 
+    write(a,b,c);
 
 end.

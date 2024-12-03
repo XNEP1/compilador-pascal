@@ -45,12 +45,13 @@
 extern int yydebug;
 #endif
 /* "%code requires" blocks.  */
-#line 71 "./src/compilador.y"
+#line 79 "./src/compilador.y"
 
 #include "Types.h"
 DEF_VEC(Vec_String, char*)
+DEF_VEC(Vec_Vec_String, Vec_String)
 
-#line 54 "./bin/compilador.tab.h"
+#line 55 "./bin/compilador.tab.h"
 
 /* Token kinds.  */
 #ifndef YYTOKENTYPE
@@ -126,7 +127,7 @@ DEF_VEC(Vec_String, char*)
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 union YYSTYPE
 {
-#line 77 "./src/compilador.y"
+#line 86 "./src/compilador.y"
 
   int intV;
   double doubleV;
@@ -137,7 +138,7 @@ union YYSTYPE
   Vec_String vecString;
   yytoken_kind_t tokenType;
 
-#line 141 "./bin/compilador.tab.h"
+#line 142 "./bin/compilador.tab.h"
 
 };
 typedef union YYSTYPE YYSTYPE;

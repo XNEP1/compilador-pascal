@@ -29,13 +29,18 @@ char *rotulo_else;
 // Variavel global que armazena o simbolo de um procedimento sendo chamado.
 // Serve para lidar com listas de expressões: ter uma referencia para checar os tipos dos parametros
 // E para gerar o código correto no caso de parametro por referecia.
-// É igual a NULL quando não estamos lidando com geração de código de chamada de procedimento.
+// É igual a NULL quando não estamos lidando com geração de código de chamada de procedimento ou
+// quando quando a função em questão é especial.
 Symbol *callingProc = NULL;
 
-// Similar ao callingProc
-// Mas é usado para salvar o simbolo de uma função que está sendo declarada.
-// Serve para inserir uma tabela de quais parametros são ref na função.
-Symbol *declaringProc = NULL;
+// Pode se tornar true na função setCallingProc.
+// Caso seja true, significa que uma função especial (como read ou write) está sendo chamada.
+// Faz com que todos os parametros usados na função sejam referencias.
+// As funções especiais precisam ter um mecanismo especial para lidar com parametros
+// e eu não quero declarar essas duas funções implicitamente.
+// Usar todos os parametros não é uma solução eficiente em questão de numero de instruções, porém, é fácil.
+// A função gen_special_functions retorna o valor para false.
+bool allParamRef_flag = false;
 
 // Ponteiro auxiliar para armazenar um buffer com uma instrução mepa.
 // Após gerar uma instrução, o buffer deve ser liberado.
@@ -65,12 +70,16 @@ void gen_declara_procedimento_retorna(int qnt_param);
 void gen_chama_procedimento(char *proc_name, Vec_TypeID expressionType_list);
 bool gen_special_functions(char *proc_name, Vec_TypeID expressionType_list);
 bool exprShouldBeRef();
+void setCallingProc(char *proc_name);
+int insertFormalParamInSymbolTable();
+void insertParamIdentListInStack(void *paramList, bool isRef);
 
 %}
 
 %code requires {
 #include "Types.h"
 DEF_VEC(Vec_String, char*)
+DEF_VEC(Vec_Vec_String, Vec_String)
 }
 
 // YYSTYPE union
@@ -106,8 +115,8 @@ DEF_VEC(Vec_String, char*)
 
 %type <tptr> variavel
 %type <intV> lista_id_var // quantidade de vars
-%type <intV> parametros_formais lista_parametros_formais secao_parametros_formais lista_id_par // qnt de parametros
-%type <vecString> montando_lista_id_par// armazena os indentificadores para inserir na tabela de simbolo depois na ordem correta
+%type <intV> parametros_formais // qnt de parametros
+%type <vecString> montando_lista_id_par lista_id_par // armazena os indentificadores para inserir na tabela de simbolo depois na ordem correta
 %type <boolV> sinal // Se for True, consome o sinal e multiplica o termo do lado por -1.
 %type <typeID> expressao chamada_funcao
 %type <vecType> lista_expressoes
@@ -184,13 +193,7 @@ lista_id_var: lista_id_var VIRGULA IDENT
             }
             ;
 
-lista_id_par: montando_lista_id_par 
-            {
-                $$ = $1.size;
-                int i = 0;
-                while($1.size > 0)
-                    insert_par_sybTable(&sybTable, Vec_String_pop(&$1), lex_level, -4-(i++));
-            }
+lista_id_par: montando_lista_id_par {$$ = $1;}
             ;
 
 montando_lista_id_par: montando_lista_id_par VIRGULA IDENT
@@ -217,18 +220,23 @@ declaracao_procedimento: {lex_level++;} PROCEDURE IDENT parametros_formais {gen_
 declaracao_function: {lex_level++;} FUNCTION IDENT parametros_formais DOIS_PONTOS IDENT PONTO_E_VIRGULA bloco
                    ;
 
+parametros_formais: ABRE_PARENTESES lista_parametros_formais FECHA_PARENTESES {$$ = insertFormalParamInSymbolTable();};
 
-parametros_formais: ABRE_PARENTESES lista_parametros_formais FECHA_PARENTESES {$$ = $2;};
-
-lista_parametros_formais: secao_parametros_formais {$$ = $1;}
-                        | lista_parametros_formais PONTO_E_VIRGULA secao_parametros_formais {$$ = $1 + $3;}
+lista_parametros_formais: secao_parametros_formais
+                        | lista_parametros_formais PONTO_E_VIRGULA secao_parametros_formais
                         ;
 
-secao_parametros_formais: VAR lista_id_par DOIS_PONTOS IDENT {$$ = set_param_types($2, $4, true);}
-                        | lista_id_par DOIS_PONTOS IDENT {$$ = set_param_types($1, $3, false);} 
-                        | FUNCTION lista_id_par DOIS_PONTOS IDENT {$$ = set_param_types($2, $4, false);}
-                        | PROCEDURE lista_id_par {$$ = $2;} // TODO Como isso funciona??
+secao_parametros_formais: VAR lista_id_par DOIS_PONTOS IDENT {Vec_String_push(&$2, $4); insertParamIdentListInStack((void*)&$2, true);}
+                        | lista_id_par DOIS_PONTOS IDENT {Vec_String_push(&$1, $3); insertParamIdentListInStack((void*)&$1, false);} 
+                        | FUNCTION lista_id_par DOIS_PONTOS IDENT {Vec_String_push(&$2, $4); insertParamIdentListInStack((void*)&$2, false);}
+//                      | PROCEDURE lista_id_par {$$ = $2;} // TODO Como isso funciona??
                         ;
+
+// secao_parametros_formais: VAR lista_id_par DOIS_PONTOS IDENT {$$ = set_param_types($2, $4, true);}
+//                         | lista_id_par DOIS_PONTOS IDENT {$$ = set_param_types($1, $3, false);} 
+//                         | FUNCTION lista_id_par DOIS_PONTOS IDENT {$$ = set_param_types($2, $4, false);}
+//                         | PROCEDURE lista_id_par {$$ = $2;} // TODO Como isso funciona??
+//                         ;
 
 atribuicao: IDENT ATRIBUICAO expressao {gen_atribuicao($1, $3);}
           ;
@@ -271,8 +279,8 @@ variavel: IDENT {$$ = $1;}
         | IDENT ABRE_COLCHETES lista_expressoes FECHA_COLCHETES {$$ = $1;}
         ;
 
-chamada_procedimento: IDENT {callingProc = find_syb(&sybTable, $1);} ABRE_PARENTESES lista_expressoes FECHA_PARENTESES {gen_chama_procedimento($1, $4);} {callingProc = NULL;} 
-                    | IDENT {callingProc = find_syb(&sybTable, $1);}{gen_chama_procedimento($1,Vec_TypeID_new(0));} {callingProc = NULL;}
+chamada_procedimento: IDENT {setCallingProc($1);} ABRE_PARENTESES lista_expressoes FECHA_PARENTESES {gen_chama_procedimento($1, $4);} {callingProc = NULL; allParamRef_flag = false;} 
+                    | IDENT {setCallingProc($1);}{gen_chama_procedimento($1,Vec_TypeID_new(0));} {callingProc = NULL; allParamRef_flag = false;}
                     ;
 
 
@@ -325,8 +333,12 @@ comando_sem_rotulo: atribuicao
 // culpa do bison...
 
 IMPL_VEC(Vec_String, char*)
+IMPL_VEC(Vec_Vec_String, Vec_String)
 
 Vec_String rotulosStack;
+
+Vec_Vec_String param_ident_stack;
+Vec_bool param_isRef_stack;
 
 // =========================
 
@@ -373,7 +385,6 @@ TypeID gen_carrega_var(const char *ident){
         goto gen_carrega_var_EXIT;
     }
 
-        
     gen_carrega_var_EXIT:
     geraCodigo(NULL, mepaCommand);
     free(mepaCommand);
@@ -569,22 +580,28 @@ void gen_while_part3(){
 
 bool gen_special_functions(char *proc_name, Vec_TypeID expressionType_list){
     int qnt_param = expressionType_list.size;
-    char *tempCommandString; // TA TUDO ERRADO/ WRITE DA FAZENDO ARMZ
-    if(strcmp(proc_name, "read") == 0)
-        tempCommandString = "LEIT";
-    else if(strcmp(proc_name, "write") == 0)
-        tempCommandString = "IMPR";
-    else 
+    char *tempCommandString;
+    if(strcmp(proc_name, "read") == 0){
+        
+        //asprintf(&mepaCommand, "DMEM %d", qnt_param);
+        // geraCodigo(NULL, mepaCommand);
+        // free(mepaCommand);
+
+        for(int i=2; i<=qnt_param+1; i++){
+            geraCodigo(NULL, "LEIT");
+            Symbol s=sybTable.data[sybTable.size - i];
+            asprintf(&mepaCommand, "ARMI %d,%d", s.lex_level, s.atributes.param_attr.offset);
+            geraCodigo(NULL, mepaCommand);
+            free(mepaCommand);
+        }
+    } else if(strcmp(proc_name, "write") == 0){
+
+        for(int i=0; i<qnt_param; i++){
+            geraCodigo(NULL, "IMPR");
+        }
+    } else 
         return false;
 
-    for(int i=2; i<=qnt_param+1; i++){
-        geraCodigo(NULL, tempCommandString);
-
-        Symbol s=sybTable.data[sybTable.size - i];
-        asprintf(&mepaCommand, "ARMZ %d,%d", s.lex_level, s.atributes.param_attr.offset);
-        geraCodigo(NULL, mepaCommand);
-        free(mepaCommand);
-    }
     return true;
 }
 
@@ -679,7 +696,51 @@ bool exprShouldBeRef(){
     if(callingProc == NULL)
         return false;
 
-    return callingProc->atributes.proc_attr.isRef.data[exprList_size-1];
+    if(allParamRef_flag){
+        printf("FLAAAAAAAAAAAAAAAAAAAAAAAAAAAG\n");
+        return true;
+    }
+
+    int q = callingProc->atributes.proc_attr.isRef.size;
+
+    return callingProc->atributes.proc_attr.isRef.data[exprList_size - 1];
+}
+
+int insertFormalParamInSymbolTable(){
+    int total_param_qnt = 0;
+    int i = 0;
+    while(param_ident_stack.size > 0){
+        Vec_String list = Vec_Vec_String_pop(&param_ident_stack);
+        char *typeIdent = Vec_String_pop(&list);
+        int paramQnt = list.size;
+        bool isRef = Vec_bool_pop(&param_isRef_stack);
+        total_param_qnt += paramQnt;
+        while(list.size > 0){
+            char *ParamIdent = Vec_String_pop(&list);
+            insert_par_sybTable(&sybTable, ParamIdent, lex_level, -4-(i++));
+        }
+        set_param_types(paramQnt, typeIdent, isRef);
+    }
+    return total_param_qnt;
+}
+
+void insertParamIdentListInStack(void *paramList, bool isRef){
+    Vec_String pl = *((Vec_String *)paramList);
+    Vec_Vec_String_push(&param_ident_stack, pl);
+    Vec_bool_push(&param_isRef_stack, isRef);
+    // Se vc está se pergutando qual a utilidade dessa função,
+    // é por que o bison não me deixa organizar o arquivo de um jeito
+    // que me permita usar param_ident_stack dentro dos blocos de código
+    // das regras.
+}
+
+void setCallingProc(char *proc_name){
+    if(strcmp(proc_name, "read") == 0){
+        allParamRef_flag = true;
+    } else if(strcmp(proc_name, "write") == 0){
+        allParamRef_flag = false;
+    } else 
+        callingProc = find_syb(&sybTable, proc_name);
 }
 
 char *novo_rotulo(){
@@ -709,6 +770,8 @@ int main (int argc, char** argv) {
  * ------------------------------------------------------------------- */
     sybTable = Vec_Symbol_new(100);
     rotulosStack = Vec_String_new(100);
+    param_ident_stack = Vec_Vec_String_new(100);
+    param_isRef_stack = Vec_bool_new(100);
 
     yyin=fp;
     yyparse();
