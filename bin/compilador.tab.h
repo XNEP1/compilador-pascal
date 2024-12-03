@@ -45,7 +45,7 @@
 extern int yydebug;
 #endif
 /* "%code requires" blocks.  */
-#line 79 "./src/compilador.y"
+#line 81 "./src/compilador.y"
 
 #include "Types.h"
 DEF_VEC(Vec_String, char*)
@@ -127,7 +127,7 @@ DEF_VEC(Vec_Vec_String, Vec_String)
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 union YYSTYPE
 {
-#line 86 "./src/compilador.y"
+#line 88 "./src/compilador.y"
 
   int intV;
   double doubleV;

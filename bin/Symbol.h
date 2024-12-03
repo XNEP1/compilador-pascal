@@ -14,12 +14,10 @@ enum categories {
 
 typedef struct AtributeVar {
     TypeID type;
-    int offset;
 } AtributeVar;
 
 typedef struct AtributeParameter {
     TypeID type;
-    int offset;
     bool isRef;
 } AtributeParameter;
 
@@ -41,6 +39,7 @@ typedef struct Symbol {
     char *ident;
     int category;
     int lex_level;
+    int offset;
     Atributes atributes;
 } Symbol;
 

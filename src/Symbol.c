@@ -22,7 +22,7 @@ Symbol *insert_var_sybTable(Vec_Symbol *sybTable, char *ident, const int var_lex
     s.ident = ident;
     s.category = CAT_VAR;
     s.lex_level = var_lex_level;
-    s.atributes.var_attr.offset = offset;
+    s.offset = offset;
     // tipo ainda desconhecido.
     Vec_Symbol_push(sybTable, s);
     return &sybTable->data[sybTable->size-1];
@@ -33,7 +33,7 @@ Symbol *insert_par_sybTable(Vec_Symbol *sybTable, char *ident, const int par_lex
     s.ident = ident;
     s.category = CAT_PAR;
     s.lex_level = par_lex_level;
-    s.atributes.param_attr.offset = offset;
+    s.offset = offset;
     // tipo ainda desconhecido.
     // Também não se sabe ainda se será uma referencia ou por valor.
     Vec_Symbol_push(sybTable, s);

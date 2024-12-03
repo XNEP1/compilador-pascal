@@ -7,7 +7,7 @@ var a, b, c: integer;
         outra := 10;
         a:=61;
         a := outra + a;
-        b:=62;
+        b:=62
     end;
 begin
     read(a,b);
@@ -19,6 +19,6 @@ begin
 
     c := b;
 
-    write(a,b,c);
+    write(a,b,c)
 
 end.
