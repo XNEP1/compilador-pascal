@@ -133,6 +133,12 @@ function { simbolo = simb_function;
           return FUNCTION;
 }
 
+forward { simbolo = simb_forward;
+          strncpy (token, yytext, TAM_TOKEN);
+          IMPRIME(" forward   ");
+          return FORWARD;
+}
+
 := { simbolo = simb_atribuicao;
           strncpy (token, yytext, TAM_TOKEN);
           IMPRIME(" atribuicao  ");

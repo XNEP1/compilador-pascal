@@ -46,6 +46,10 @@ bool allParamRef_flag = false;
 // Após gerar uma instrução, o buffer deve ser liberado.
 char* mepaCommand = NULL;
 
+char *temp_proc_name;
+int temp_qnt_param; 
+char* temp_typeIdent;
+
 Vec_Symbol sybTable;
 
 // Prototipos
@@ -65,6 +69,7 @@ void gen_if_with_else_part2();
 void gen_while_part1();
 void gen_while_part2(TypeID expressionType);
 void gen_while_part3();
+void create_declara_procedimento(char *proc_name, int qnt_param, char* typeIdent);
 void gen_declara_procedimento_entrar(char *proc_name, int qnt_param, char* typeIdent);
 void gen_declara_procedimento_retorna(int qnt_param);
 void gen_chama_procedimento(char *proc_name, Vec_TypeID expressionType_list);
@@ -103,6 +108,7 @@ DEF_VEC(Vec_Vec_String, Vec_String)
 %token IF THEN ELSE GOTO WHILE UNTIL DO REPEAT
 %token T_FILE FOR FUNCTION PROCEDURE IN NIL T_OF PACKED 
 %token RECORD SET T_TO WITH
+%token FORWARD
 
 // Operações
 %token <tokenType> SOMA SUB MUL DIV AND OR
@@ -212,15 +218,28 @@ montando_lista_id_par: montando_lista_id_par VIRGULA IDENT
 
 parte_declara_subrotinas: {$$ = 0;}
                         | parte_declara_subrotinas declaracao_procedimento PONTO_E_VIRGULA {$$ = $1 + 1;}
-                        | parte_declara_subrotinas declaracao_function PONTO_E_VIRGULA {$$ = $1 + 1;}
+                        | parte_declara_subrotinas {lex_level++;} declaracao_function PONTO_E_VIRGULA {$$ = $1 + 1;}
                         ;
 
-declaracao_procedimento: {lex_level++;} PROCEDURE IDENT parametros_formais {gen_declara_procedimento_entrar($3, $4, NULL);}
-                         PONTO_E_VIRGULA bloco {gen_declara_procedimento_retorna($4); lex_level--;}
+declaracao_procedimento: PROCEDURE {lex_level++;} IDENT parametros_formais PONTO_E_VIRGULA {
+    temp_proc_name = $3;
+    temp_qnt_param = $4;
+} bloc_declaracao_procedimento
                        ;
 
-declaracao_function: {lex_level++;} FUNCTION IDENT parametros_formais DOIS_PONTOS IDENT {gen_declara_procedimento_entrar($3, $4, $6);}
-                     PONTO_E_VIRGULA bloco {gen_declara_procedimento_retorna($4); lex_level--;}
+bloc_declaracao_procedimento: {gen_declara_procedimento_entrar(temp_proc_name, temp_qnt_param, NULL);} bloco {gen_declara_procedimento_retorna(temp_qnt_param); lex_level--;}
+                         | FORWARD PONTO_E_VIRGULA {create_declara_procedimento(temp_proc_name, temp_qnt_param, NULL); lex_level--;}
+                         ;
+
+declaracao_function: FUNCTION {lex_level++;}  IDENT parametros_formais DOIS_PONTOS IDENT PONTO_E_VIRGULA {
+    temp_proc_name = $3;
+    temp_qnt_param = $4;
+    temp_typeIdent = $6;
+} bloc_declaracao_function
+                   ;
+
+bloc_declaracao_function: {gen_declara_procedimento_entrar(temp_proc_name, temp_qnt_param, temp_typeIdent);} bloco {gen_declara_procedimento_retorna(temp_qnt_param); lex_level--;}
+                     | FORWARD PONTO_E_VIRGULA {create_declara_procedimento(temp_proc_name, temp_qnt_param, temp_typeIdent); lex_level--;}
                      ;
 
 parametros_formais: ABRE_PARENTESES lista_parametros_formais FECHA_PARENTESES {$$ = insertFormalParamInSymbolTable();};
@@ -606,7 +625,7 @@ bool gen_special_functions(char *proc_name, Vec_TypeID expressionType_list){
     return true;
 }
 
-void gen_declara_procedimento_entrar(char *proc_name, int qnt_param, char* typeIdent){
+void create_declara_procedimento(char *proc_name, int qnt_param, char* typeIdent){
     char *rotulo = novo_rotulo();
     Symbol *proc_syb = insert_proc_sybTable(&sybTable, proc_name, lex_level, rotulo, qnt_param);
 
@@ -630,6 +649,12 @@ void gen_declara_procedimento_entrar(char *proc_name, int qnt_param, char* typeI
         bool paramIsRef = s.atributes.param_attr.isRef;
         Vec_bool_push(&proc_syb->atributes.proc_attr.isRef, paramIsRef);
     }
+}
+
+void gen_declara_procedimento_entrar(char *proc_name, int qnt_param, char* typeIdent){
+    Symbol *s = find_syb(&sybTable, proc_name);
+    if(s == NULL)
+        create_declara_procedimento(proc_name, qnt_param, typeIdent);
 
     char *rotulo_skip_proc = novo_rotulo();
     Vec_String_push(&rotulosStack, rotulo_skip_proc);

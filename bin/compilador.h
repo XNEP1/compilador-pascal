@@ -54,6 +54,7 @@ typedef enum simbolos {
     simb_maior,
     simb_igual,
     simb_diferente,
+    simb_forward,
 } simbolos;
 
 /* -------------------------------------------------------------------

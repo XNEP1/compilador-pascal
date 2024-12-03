@@ -112,6 +112,10 @@ bool allParamRef_flag = false;
 // Após gerar uma instrução, o buffer deve ser liberado.
 char* mepaCommand = NULL;
 
+char *temp_proc_name;
+int temp_qnt_param; 
+char* temp_typeIdent;
+
 Vec_Symbol sybTable;
 
 // Prototipos
@@ -131,6 +135,7 @@ void gen_if_with_else_part2();
 void gen_while_part1();
 void gen_while_part2(TypeID expressionType);
 void gen_while_part3();
+void create_declara_procedimento(char *proc_name, int qnt_param, char* typeIdent);
 void gen_declara_procedimento_entrar(char *proc_name, int qnt_param, char* typeIdent);
 void gen_declara_procedimento_retorna(int qnt_param);
 void gen_chama_procedimento(char *proc_name, Vec_TypeID expressionType_list);
@@ -143,7 +148,7 @@ int insertFormalParamInSymbolTable();
 void insertParamIdentListInStack(void *paramList, bool isRef);
 
 
-#line 147 "./bin/compilador.tab.c"
+#line 152 "./bin/compilador.tab.c"
 
 # ifndef YY_CAST
 #  ifdef __cplusplus
@@ -207,80 +212,86 @@ enum yysymbol_kind_t
   YYSYMBOL_SET = 33,                       /* SET  */
   YYSYMBOL_T_TO = 34,                      /* T_TO  */
   YYSYMBOL_WITH = 35,                      /* WITH  */
-  YYSYMBOL_SOMA = 36,                      /* SOMA  */
-  YYSYMBOL_SUB = 37,                       /* SUB  */
-  YYSYMBOL_MUL = 38,                       /* MUL  */
-  YYSYMBOL_DIV = 39,                       /* DIV  */
-  YYSYMBOL_AND = 40,                       /* AND  */
-  YYSYMBOL_OR = 41,                        /* OR  */
-  YYSYMBOL_IGUAL = 42,                     /* IGUAL  */
-  YYSYMBOL_DIFERENTE = 43,                 /* DIFERENTE  */
-  YYSYMBOL_MENOR = 44,                     /* MENOR  */
-  YYSYMBOL_MENOR_IGUAL = 45,               /* MENOR_IGUAL  */
-  YYSYMBOL_MAIOR = 46,                     /* MAIOR  */
-  YYSYMBOL_MAIOR_IGUAL = 47,               /* MAIOR_IGUAL  */
-  YYSYMBOL_ABRE_PARENTESES = 48,           /* ABRE_PARENTESES  */
-  YYSYMBOL_FECHA_PARENTESES = 49,          /* FECHA_PARENTESES  */
-  YYSYMBOL_VIRGULA = 50,                   /* VIRGULA  */
-  YYSYMBOL_PONTO_E_VIRGULA = 51,           /* PONTO_E_VIRGULA  */
-  YYSYMBOL_DOIS_PONTOS = 52,               /* DOIS_PONTOS  */
-  YYSYMBOL_PONTO = 53,                     /* PONTO  */
-  YYSYMBOL_ABRE_COLCHETES = 54,            /* ABRE_COLCHETES  */
-  YYSYMBOL_FECHA_COLCHETES = 55,           /* FECHA_COLCHETES  */
-  YYSYMBOL_IDENT = 56,                     /* IDENT  */
-  YYSYMBOL_ATRIBUICAO = 57,                /* ATRIBUICAO  */
-  YYSYMBOL_LOWER_THAN_ELSE = 58,           /* LOWER_THAN_ELSE  */
-  YYSYMBOL_EXPRESSAO_PREC = 59,            /* EXPRESSAO_PREC  */
-  YYSYMBOL_YYACCEPT = 60,                  /* $accept  */
-  YYSYMBOL_programa = 61,                  /* programa  */
-  YYSYMBOL_62_1 = 62,                      /* $@1  */
-  YYSYMBOL_bloco = 63,                     /* bloco  */
-  YYSYMBOL_64_2 = 64,                      /* $@2  */
-  YYSYMBOL_parte_declara_vars = 65,        /* parte_declara_vars  */
-  YYSYMBOL_var = 66,                       /* var  */
-  YYSYMBOL_declara_vars = 67,              /* declara_vars  */
-  YYSYMBOL_declara_var = 68,               /* declara_var  */
-  YYSYMBOL_69_3 = 69,                      /* $@3  */
-  YYSYMBOL_lista_id_var = 70,              /* lista_id_var  */
-  YYSYMBOL_lista_id_par = 71,              /* lista_id_par  */
-  YYSYMBOL_montando_lista_id_par = 72,     /* montando_lista_id_par  */
-  YYSYMBOL_parte_declara_subrotinas = 73,  /* parte_declara_subrotinas  */
-  YYSYMBOL_declaracao_procedimento = 74,   /* declaracao_procedimento  */
+  YYSYMBOL_FORWARD = 36,                   /* FORWARD  */
+  YYSYMBOL_SOMA = 37,                      /* SOMA  */
+  YYSYMBOL_SUB = 38,                       /* SUB  */
+  YYSYMBOL_MUL = 39,                       /* MUL  */
+  YYSYMBOL_DIV = 40,                       /* DIV  */
+  YYSYMBOL_AND = 41,                       /* AND  */
+  YYSYMBOL_OR = 42,                        /* OR  */
+  YYSYMBOL_IGUAL = 43,                     /* IGUAL  */
+  YYSYMBOL_DIFERENTE = 44,                 /* DIFERENTE  */
+  YYSYMBOL_MENOR = 45,                     /* MENOR  */
+  YYSYMBOL_MENOR_IGUAL = 46,               /* MENOR_IGUAL  */
+  YYSYMBOL_MAIOR = 47,                     /* MAIOR  */
+  YYSYMBOL_MAIOR_IGUAL = 48,               /* MAIOR_IGUAL  */
+  YYSYMBOL_ABRE_PARENTESES = 49,           /* ABRE_PARENTESES  */
+  YYSYMBOL_FECHA_PARENTESES = 50,          /* FECHA_PARENTESES  */
+  YYSYMBOL_VIRGULA = 51,                   /* VIRGULA  */
+  YYSYMBOL_PONTO_E_VIRGULA = 52,           /* PONTO_E_VIRGULA  */
+  YYSYMBOL_DOIS_PONTOS = 53,               /* DOIS_PONTOS  */
+  YYSYMBOL_PONTO = 54,                     /* PONTO  */
+  YYSYMBOL_ABRE_COLCHETES = 55,            /* ABRE_COLCHETES  */
+  YYSYMBOL_FECHA_COLCHETES = 56,           /* FECHA_COLCHETES  */
+  YYSYMBOL_IDENT = 57,                     /* IDENT  */
+  YYSYMBOL_ATRIBUICAO = 58,                /* ATRIBUICAO  */
+  YYSYMBOL_LOWER_THAN_ELSE = 59,           /* LOWER_THAN_ELSE  */
+  YYSYMBOL_EXPRESSAO_PREC = 60,            /* EXPRESSAO_PREC  */
+  YYSYMBOL_YYACCEPT = 61,                  /* $accept  */
+  YYSYMBOL_programa = 62,                  /* programa  */
+  YYSYMBOL_63_1 = 63,                      /* $@1  */
+  YYSYMBOL_bloco = 64,                     /* bloco  */
+  YYSYMBOL_65_2 = 65,                      /* $@2  */
+  YYSYMBOL_parte_declara_vars = 66,        /* parte_declara_vars  */
+  YYSYMBOL_var = 67,                       /* var  */
+  YYSYMBOL_declara_vars = 68,              /* declara_vars  */
+  YYSYMBOL_declara_var = 69,               /* declara_var  */
+  YYSYMBOL_70_3 = 70,                      /* $@3  */
+  YYSYMBOL_lista_id_var = 71,              /* lista_id_var  */
+  YYSYMBOL_lista_id_par = 72,              /* lista_id_par  */
+  YYSYMBOL_montando_lista_id_par = 73,     /* montando_lista_id_par  */
+  YYSYMBOL_parte_declara_subrotinas = 74,  /* parte_declara_subrotinas  */
   YYSYMBOL_75_4 = 75,                      /* $@4  */
-  YYSYMBOL_76_5 = 76,                      /* $@5  */
-  YYSYMBOL_declaracao_function = 77,       /* declaracao_function  */
+  YYSYMBOL_declaracao_procedimento = 76,   /* declaracao_procedimento  */
+  YYSYMBOL_77_5 = 77,                      /* $@5  */
   YYSYMBOL_78_6 = 78,                      /* $@6  */
-  YYSYMBOL_79_7 = 79,                      /* $@7  */
-  YYSYMBOL_parametros_formais = 80,        /* parametros_formais  */
-  YYSYMBOL_lista_parametros_formais = 81,  /* lista_parametros_formais  */
-  YYSYMBOL_secao_parametros_formais = 82,  /* secao_parametros_formais  */
-  YYSYMBOL_atribuicao = 83,                /* atribuicao  */
-  YYSYMBOL_lista_expressoes = 84,          /* lista_expressoes  */
-  YYSYMBOL_85_8 = 85,                      /* $@8  */
-  YYSYMBOL_86_9 = 86,                      /* $@9  */
-  YYSYMBOL_expressao = 87,                 /* expressao  */
-  YYSYMBOL_sinal = 88,                     /* sinal  */
-  YYSYMBOL_variavel = 89,                  /* variavel  */
-  YYSYMBOL_chamada_procedimento = 90,      /* chamada_procedimento  */
-  YYSYMBOL_91_10 = 91,                     /* $@10  */
-  YYSYMBOL_92_11 = 92,                     /* $@11  */
-  YYSYMBOL_93_12 = 93,                     /* $@12  */
-  YYSYMBOL_94_13 = 94,                     /* $@13  */
-  YYSYMBOL_chamada_funcao = 95,            /* chamada_funcao  */
-  YYSYMBOL_96_14 = 96,                     /* $@14  */
-  YYSYMBOL_97_15 = 97,                     /* $@15  */
-  YYSYMBOL_desvio = 98,                    /* desvio  */
-  YYSYMBOL_if_then = 99,                   /* if_then  */
+  YYSYMBOL_bloc_declaracao_procedimento = 79, /* bloc_declaracao_procedimento  */
+  YYSYMBOL_80_7 = 80,                      /* $@7  */
+  YYSYMBOL_declaracao_function = 81,       /* declaracao_function  */
+  YYSYMBOL_82_8 = 82,                      /* $@8  */
+  YYSYMBOL_83_9 = 83,                      /* $@9  */
+  YYSYMBOL_bloc_declaracao_function = 84,  /* bloc_declaracao_function  */
+  YYSYMBOL_85_10 = 85,                     /* $@10  */
+  YYSYMBOL_parametros_formais = 86,        /* parametros_formais  */
+  YYSYMBOL_lista_parametros_formais = 87,  /* lista_parametros_formais  */
+  YYSYMBOL_secao_parametros_formais = 88,  /* secao_parametros_formais  */
+  YYSYMBOL_atribuicao = 89,                /* atribuicao  */
+  YYSYMBOL_lista_expressoes = 90,          /* lista_expressoes  */
+  YYSYMBOL_91_11 = 91,                     /* $@11  */
+  YYSYMBOL_92_12 = 92,                     /* $@12  */
+  YYSYMBOL_expressao = 93,                 /* expressao  */
+  YYSYMBOL_sinal = 94,                     /* sinal  */
+  YYSYMBOL_variavel = 95,                  /* variavel  */
+  YYSYMBOL_chamada_procedimento = 96,      /* chamada_procedimento  */
+  YYSYMBOL_97_13 = 97,                     /* $@13  */
+  YYSYMBOL_98_14 = 98,                     /* $@14  */
+  YYSYMBOL_99_15 = 99,                     /* $@15  */
   YYSYMBOL_100_16 = 100,                   /* $@16  */
-  YYSYMBOL_comando_condicional = 101,      /* comando_condicional  */
+  YYSYMBOL_chamada_funcao = 101,           /* chamada_funcao  */
   YYSYMBOL_102_17 = 102,                   /* $@17  */
-  YYSYMBOL_comando_repititivo = 103,       /* comando_repititivo  */
-  YYSYMBOL_104_18 = 104,                   /* $@18  */
-  YYSYMBOL_105_19 = 105,                   /* $@19  */
-  YYSYMBOL_comando_composto = 106,         /* comando_composto  */
-  YYSYMBOL_comandos = 107,                 /* comandos  */
-  YYSYMBOL_comando = 108,                  /* comando  */
-  YYSYMBOL_comando_sem_rotulo = 109        /* comando_sem_rotulo  */
+  YYSYMBOL_103_18 = 103,                   /* $@18  */
+  YYSYMBOL_desvio = 104,                   /* desvio  */
+  YYSYMBOL_if_then = 105,                  /* if_then  */
+  YYSYMBOL_106_19 = 106,                   /* $@19  */
+  YYSYMBOL_comando_condicional = 107,      /* comando_condicional  */
+  YYSYMBOL_108_20 = 108,                   /* $@20  */
+  YYSYMBOL_comando_repititivo = 109,       /* comando_repititivo  */
+  YYSYMBOL_110_21 = 110,                   /* $@21  */
+  YYSYMBOL_111_22 = 111,                   /* $@22  */
+  YYSYMBOL_comando_composto = 112,         /* comando_composto  */
+  YYSYMBOL_comandos = 113,                 /* comandos  */
+  YYSYMBOL_comando = 114,                  /* comando  */
+  YYSYMBOL_comando_sem_rotulo = 115        /* comando_sem_rotulo  */
 };
 typedef enum yysymbol_kind_t yysymbol_kind_t;
 
@@ -608,19 +619,19 @@ union yyalloc
 /* YYFINAL -- State number of the termination state.  */
 #define YYFINAL  3
 /* YYLAST -- Last index in YYTABLE.  */
-#define YYLAST   159
+#define YYLAST   162
 
 /* YYNTOKENS -- Number of terminals.  */
-#define YYNTOKENS  60
+#define YYNTOKENS  61
 /* YYNNTS -- Number of nonterminals.  */
-#define YYNNTS  50
+#define YYNNTS  55
 /* YYNRULES -- Number of rules.  */
-#define YYNRULES  88
+#define YYNRULES  95
 /* YYNSTATES -- Number of states.  */
-#define YYNSTATES  162
+#define YYNSTATES  171
 
 /* YYMAXUTOK -- Last valid token kind.  */
-#define YYMAXUTOK   314
+#define YYMAXUTOK   315
 
 
 /* YYTRANSLATE(TOKEN-NUM) -- Symbol number corresponding to TOKEN-NUM
@@ -665,22 +676,23 @@ static const yytype_int8 yytranslate[] =
       25,    26,    27,    28,    29,    30,    31,    32,    33,    34,
       35,    36,    37,    38,    39,    40,    41,    42,    43,    44,
       45,    46,    47,    48,    49,    50,    51,    52,    53,    54,
-      55,    56,    57,    58,    59
+      55,    56,    57,    58,    59,    60
 };
 
 #if YYDEBUG
 /* YYRLINE[YYN] -- Source line where rule number YYN was defined.  */
 static const yytype_int16 yyrline[] =
 {
-       0,   138,   138,   138,   149,   147,   171,   175,   176,   179,
-     180,   183,   183,   186,   191,   198,   201,   206,   213,   214,
-     215,   218,   218,   218,   222,   222,   222,   226,   228,   229,
-     232,   233,   234,   239,   242,   242,   243,   243,   246,   247,
-     248,   250,   252,   253,   254,   256,   257,   258,   260,   261,
-     262,   263,   264,   265,   267,   268,   271,   272,   276,   277,
-     280,   280,   280,   281,   281,   281,   291,   291,   291,   294,
-     297,   297,   300,   301,   301,   304,   304,   304,   307,   310,
-     311,   314,   315,   318,   319,   320,   321,   322,   323
+       0,   144,   144,   144,   155,   153,   177,   181,   182,   185,
+     186,   189,   189,   192,   197,   204,   207,   212,   219,   220,
+     221,   221,   224,   224,   224,   230,   230,   231,   234,   234,
+     234,   241,   241,   242,   245,   247,   248,   251,   252,   253,
+     258,   261,   261,   262,   262,   265,   266,   267,   269,   271,
+     272,   273,   275,   276,   277,   279,   280,   281,   282,   283,
+     284,   286,   287,   290,   291,   295,   296,   299,   299,   299,
+     300,   300,   300,   310,   310,   310,   313,   316,   316,   319,
+     320,   320,   323,   323,   323,   326,   329,   330,   333,   334,
+     337,   338,   339,   340,   341,   342
 };
 #endif
 
@@ -700,22 +712,24 @@ static const char *const yytname[] =
   "LABEL", "ARRAY", "TYPE", "T_BEGIN", "T_END", "NUMBER", "CASE", "CONST",
   "MOD", "NOT", "DOWNTO", "IF", "THEN", "ELSE", "GOTO", "WHILE", "UNTIL",
   "DO", "REPEAT", "T_FILE", "FOR", "FUNCTION", "PROCEDURE", "IN", "NIL",
-  "T_OF", "PACKED", "RECORD", "SET", "T_TO", "WITH", "SOMA", "SUB", "MUL",
-  "DIV", "AND", "OR", "IGUAL", "DIFERENTE", "MENOR", "MENOR_IGUAL",
-  "MAIOR", "MAIOR_IGUAL", "ABRE_PARENTESES", "FECHA_PARENTESES", "VIRGULA",
-  "PONTO_E_VIRGULA", "DOIS_PONTOS", "PONTO", "ABRE_COLCHETES",
-  "FECHA_COLCHETES", "IDENT", "ATRIBUICAO", "LOWER_THAN_ELSE",
-  "EXPRESSAO_PREC", "$accept", "programa", "$@1", "bloco", "$@2",
-  "parte_declara_vars", "var", "declara_vars", "declara_var", "$@3",
-  "lista_id_var", "lista_id_par", "montando_lista_id_par",
-  "parte_declara_subrotinas", "declaracao_procedimento", "$@4", "$@5",
-  "declaracao_function", "$@6", "$@7", "parametros_formais",
-  "lista_parametros_formais", "secao_parametros_formais", "atribuicao",
-  "lista_expressoes", "$@8", "$@9", "expressao", "sinal", "variavel",
-  "chamada_procedimento", "$@10", "$@11", "$@12", "$@13", "chamada_funcao",
-  "$@14", "$@15", "desvio", "if_then", "$@16", "comando_condicional",
-  "$@17", "comando_repititivo", "$@18", "$@19", "comando_composto",
-  "comandos", "comando", "comando_sem_rotulo", YY_NULLPTR
+  "T_OF", "PACKED", "RECORD", "SET", "T_TO", "WITH", "FORWARD", "SOMA",
+  "SUB", "MUL", "DIV", "AND", "OR", "IGUAL", "DIFERENTE", "MENOR",
+  "MENOR_IGUAL", "MAIOR", "MAIOR_IGUAL", "ABRE_PARENTESES",
+  "FECHA_PARENTESES", "VIRGULA", "PONTO_E_VIRGULA", "DOIS_PONTOS", "PONTO",
+  "ABRE_COLCHETES", "FECHA_COLCHETES", "IDENT", "ATRIBUICAO",
+  "LOWER_THAN_ELSE", "EXPRESSAO_PREC", "$accept", "programa", "$@1",
+  "bloco", "$@2", "parte_declara_vars", "var", "declara_vars",
+  "declara_var", "$@3", "lista_id_var", "lista_id_par",
+  "montando_lista_id_par", "parte_declara_subrotinas", "$@4",
+  "declaracao_procedimento", "$@5", "$@6", "bloc_declaracao_procedimento",
+  "$@7", "declaracao_function", "$@8", "$@9", "bloc_declaracao_function",
+  "$@10", "parametros_formais", "lista_parametros_formais",
+  "secao_parametros_formais", "atribuicao", "lista_expressoes", "$@11",
+  "$@12", "expressao", "sinal", "variavel", "chamada_procedimento", "$@13",
+  "$@14", "$@15", "$@16", "chamada_funcao", "$@17", "$@18", "desvio",
+  "if_then", "$@19", "comando_condicional", "$@20", "comando_repititivo",
+  "$@21", "$@22", "comando_composto", "comandos", "comando",
+  "comando_sem_rotulo", YY_NULLPTR
 };
 
 static const char *
@@ -725,12 +739,12 @@ yysymbol_name (yysymbol_kind_t yysymbol)
 }
 #endif
 
-#define YYPACT_NINF (-134)
+#define YYPACT_NINF (-141)
 
 #define yypact_value_is_default(Yyn) \
   ((Yyn) == YYPACT_NINF)
 
-#define YYTABLE_NINF (-67)
+#define YYTABLE_NINF (-74)
 
 #define yytable_value_is_error(Yyn) \
   0
@@ -739,23 +753,24 @@ yysymbol_name (yysymbol_kind_t yysymbol)
    STATE-NUM.  */
 static const yytype_int16 yypact[] =
 {
-    -134,    18,    19,  -134,   -17,    21,   -13,  -134,    35,    17,
-      38,    29,    86,  -134,    30,    39,  -134,  -134,  -134,    30,
-    -134,    13,  -134,   -20,  -134,    46,    60,    83,    79,   104,
-      81,   107,  -134,  -134,     1,  -134,  -134,    78,  -134,    80,
-      84,    32,     5,   127,  -134,   -34,  -134,  -134,  -134,   120,
-    -134,  -134,  -134,    -6,  -134,  -134,    91,    91,  -134,  -134,
-    -134,     5,  -134,  -134,     5,    -4,    82,     5,  -134,  -134,
-    -134,     5,     5,    92,  -134,  -134,  -134,     1,    12,  -134,
-      89,  -134,    68,  -134,    94,     5,     5,     5,     5,     5,
-       5,     5,     5,     5,     5,     5,     5,   126,  -134,    34,
-      82,  -134,  -134,    32,  -134,   -13,   -13,    93,    15,  -134,
-      95,    88,  -134,    -1,     5,  -134,    20,    20,  -134,  -134,
-    -134,    20,    58,    58,    58,    58,    58,    58,    32,  -134,
-      -3,  -134,    96,    97,    98,  -134,    12,    86,  -134,  -134,
-    -134,    82,    33,  -134,    32,  -134,    99,   100,  -134,  -134,
-    -134,   101,     5,  -134,  -134,  -134,  -134,  -134,    86,    82,
-    -134,  -134
+    -141,    13,    18,  -141,   -12,     5,     6,  -141,    16,    28,
+      40,    67,    93,  -141,    68,    72,  -141,  -141,  -141,    68,
+    -141,    -9,  -141,    23,  -141,    70,    71,  -141,   121,   104,
+      79,  -141,  -141,    76,    -2,  -141,  -141,    80,  -141,    82,
+      86,     7,    10,   126,  -141,   -39,  -141,  -141,  -141,   119,
+    -141,  -141,  -141,     0,  -141,  -141,    81,  -141,  -141,    -1,
+      87,  -141,  -141,    10,  -141,  -141,    10,   -33,    75,    10,
+    -141,  -141,  -141,    10,    10,    91,  -141,  -141,  -141,    -2,
+      86,     6,     6,    88,     1,  -141,  -141,  -141,    61,  -141,
+      94,    10,    10,    10,    10,    10,    10,    10,    10,    10,
+      10,    10,    10,   125,  -141,    43,    75,  -141,  -141,     7,
+    -141,    92,    95,    96,    89,  -141,    -1,   108,  -141,   -10,
+      10,  -141,    21,    21,  -141,  -141,  -141,    21,    32,    32,
+      32,    32,    32,    32,     7,  -141,    25,  -141,    90,    97,
+      98,  -141,  -141,    99,  -141,    93,  -141,  -141,    75,    44,
+    -141,     7,  -141,   100,  -141,  -141,  -141,  -141,    10,  -141,
+    -141,  -141,  -141,    75,  -141,   114,   101,  -141,    93,  -141,
+    -141
 };
 
 /* YYDEFACT[STATE-NUM] -- Default reduction number in state STATE-NUM.
@@ -765,41 +780,44 @@ static const yytype_int8 yydefact[] =
 {
        2,     0,     0,     1,     0,     0,     0,    17,     0,    15,
        0,     0,     8,    16,     0,     0,    18,     6,    14,     7,
-      10,     0,     3,     4,     9,     0,     0,     0,     0,     0,
-       0,     0,    13,    11,     0,     5,    19,     0,    20,     0,
-       0,     0,     0,     0,    75,    63,    83,    84,    85,    72,
-      87,    88,    86,     0,    79,    82,     0,     0,    12,    81,
-      55,     0,    56,    57,     0,    58,    70,     0,    54,    39,
-      69,     0,     0,     0,    64,    73,    78,     0,     0,    22,
-       0,    41,     0,    34,     0,     0,     0,     0,     0,     0,
-       0,     0,     0,     0,     0,     0,     0,     0,    40,     0,
-      33,    34,    65,     0,    80,     0,     0,     0,     0,    28,
-       0,     0,    38,     0,     0,    34,    45,    46,    42,    43,
-      44,    47,    48,    49,    52,    53,    50,    51,     0,    76,
-       0,    74,     0,     0,     0,    27,     0,     8,    25,    36,
-      59,    35,     0,    71,     0,    61,     0,     0,    31,    29,
-      23,     0,     0,    67,    77,    62,    30,    32,     8,    37,
-      68,    26
+      10,     0,     3,     4,     9,     0,     0,    22,     0,     0,
+       0,    13,    11,     0,     0,     5,    28,     0,    19,     0,
+       0,     0,     0,     0,    82,    70,    90,    91,    92,    79,
+      94,    95,    93,     0,    86,    89,     0,    21,    12,     0,
+       0,    88,    62,     0,    63,    64,     0,    65,    77,     0,
+      61,    46,    76,     0,     0,     0,    71,    80,    85,     0,
+       0,     0,     0,     0,     0,    35,    23,    48,     0,    41,
+       0,     0,     0,     0,     0,     0,     0,     0,     0,     0,
+       0,     0,     0,     0,    47,     0,    40,    41,    72,     0,
+      87,     0,     0,     0,     0,    34,     0,    25,    45,     0,
+       0,    41,    52,    53,    49,    50,    51,    54,    55,    56,
+      59,    60,    57,    58,     0,    83,     0,    81,     0,     0,
+       0,    38,    36,     0,    24,     8,    43,    66,    42,     0,
+      78,     0,    68,     0,    37,    39,    27,    26,     0,    74,
+      84,    69,    29,    44,    75,    31,     0,    30,     8,    33,
+      32
 };
 
 /* YYPGOTO[NTERM-NUM].  */
 static const yytype_int16 yypgoto[] =
 {
-    -134,  -134,  -134,  -133,  -134,  -134,  -134,  -134,   128,  -134,
-    -134,    -5,  -134,  -134,  -134,  -134,  -134,  -134,  -134,  -134,
-     102,  -134,    14,  -134,   -91,  -134,  -134,   -59,  -134,  -134,
-    -134,  -134,  -134,  -134,  -134,  -134,  -134,  -134,  -134,  -134,
-    -134,  -134,  -134,  -134,  -134,  -134,   124,  -134,    76,   -41
+    -141,  -141,  -141,  -140,  -141,  -141,  -141,  -141,   137,  -141,
+    -141,    -4,  -141,  -141,  -141,  -141,  -141,  -141,  -141,  -141,
+    -141,  -141,  -141,  -141,  -141,    77,  -141,    42,  -141,   -64,
+    -141,  -141,   -62,  -141,  -141,  -141,  -141,  -141,  -141,  -141,
+    -141,  -141,  -141,  -141,  -141,  -141,  -141,  -141,  -141,  -141,
+    -141,   131,  -141,    83,   -41
 };
 
 /* YYDEFGOTO[NTERM-NUM].  */
 static const yytype_uint8 yydefgoto[] =
 {
-       0,     1,     2,    15,    27,    16,    17,    19,    20,    40,
-      21,   107,     9,    23,    28,    29,   110,    30,    31,   151,
-      79,   108,   109,    46,   113,   114,   152,    66,    67,    68,
-      47,    73,   155,    74,   102,    69,    84,   160,    48,    49,
-      97,    50,   103,    51,    71,   144,    52,    53,    54,    55
+       0,     1,     2,    15,    28,    16,    17,    19,    20,    39,
+      21,    83,     9,    23,    29,    30,    33,   117,   144,   145,
+      37,    56,   165,   167,   168,    60,    84,    85,    46,   119,
+     120,   158,    68,    69,    70,    47,    75,   161,    76,   108,
+      71,    90,   164,    48,    49,   103,    50,   109,    51,    73,
+     151,    52,    53,    54,    55
 };
 
 /* YYTABLE[YYPACT[STATE-NUM]] -- What to do in state STATE-NUM.  If
@@ -807,79 +825,83 @@ static const yytype_uint8 yydefgoto[] =
    number is the opposite.  If YYTABLE_NINF, syntax error.  */
 static const yytype_int16 yytable[] =
 {
-      59,     8,    81,    76,   150,    82,   -24,   -21,    98,    34,
-     130,    41,    99,   100,   -60,    60,   105,    42,     3,    61,
-      43,    44,     4,    72,   142,   161,   116,   117,   118,   119,
-     120,   121,   122,   123,   124,   125,   126,   127,   106,     5,
-      34,    62,    63,     7,   -66,    77,   145,   139,    42,   139,
-      83,    43,    44,    64,   140,   141,   129,    45,    87,    88,
-      89,    65,   131,    25,   135,    26,   136,    11,     7,     6,
-      85,    86,    87,    88,    89,    90,    91,    92,    93,    94,
-      95,    96,   153,   139,    10,    13,    18,   143,    45,    12,
-      14,    34,    22,   159,    85,    86,    87,    88,    89,    90,
-     132,   133,    32,   154,    85,    86,    87,    88,    89,    90,
-      91,    92,    93,    94,    95,    96,    33,   112,    85,    86,
-      87,    88,    89,    90,    91,    92,    93,    94,    95,    96,
-      36,    37,    38,    39,    56,    58,    57,    70,    75,    78,
-     101,   111,   115,   128,   138,   134,   137,    24,   146,   147,
-     149,    35,   158,   104,   148,   156,   157,     0,     0,    80
+      61,    87,     8,    81,    88,   157,    34,   104,    41,    78,
+     -67,   105,   106,     3,    42,    34,   -73,    43,    44,    74,
+      62,     4,    89,    42,    63,    82,    43,    44,   170,   122,
+     123,   124,   125,   126,   127,   128,   129,   130,   131,   132,
+     133,   146,    25,   136,    26,     5,   147,    64,    65,   -20,
+      27,   115,    79,   116,     6,    45,     7,   149,   148,    66,
+      93,    94,    95,     7,    45,   135,    10,    67,   137,    91,
+      92,    93,    94,    95,    96,   152,   146,   112,   113,    11,
+      91,    92,    93,    94,    95,    96,    97,    98,    99,   100,
+     101,   102,    12,   150,   159,   146,   163,    14,    91,    92,
+      93,    94,    95,    96,    97,    98,    99,   100,   101,   102,
+     160,   118,    91,    92,    93,    94,    95,    96,    97,    98,
+      99,   100,   101,   102,    13,    18,    22,    31,    32,    34,
+      36,    38,    57,    40,    58,    59,    72,    77,    80,    86,
+     107,   114,   134,   121,   143,   138,   141,   153,   139,   140,
+     166,   156,   162,   169,   154,   155,    24,   111,   142,    35,
+       0,     0,   110
 };
 
 static const yytype_int16 yycheck[] =
 {
-      41,     6,    61,     9,   137,    64,    26,    27,    67,     8,
-     101,    10,    71,    72,    48,    10,     4,    16,     0,    14,
-      19,    20,     3,    57,   115,   158,    85,    86,    87,    88,
-      89,    90,    91,    92,    93,    94,    95,    96,    26,    56,
-       8,    36,    37,    56,    48,    51,    49,    50,    16,    50,
-      54,    19,    20,    48,    55,   114,    22,    56,    38,    39,
-      40,    56,   103,    50,    49,    52,    51,    50,    56,    48,
-      36,    37,    38,    39,    40,    41,    42,    43,    44,    45,
-      46,    47,    49,    50,    49,    56,    56,   128,    56,    51,
-       4,     8,    53,   152,    36,    37,    38,    39,    40,    41,
-     105,   106,    56,   144,    36,    37,    38,    39,    40,    41,
-      42,    43,    44,    45,    46,    47,    56,    49,    36,    37,
-      38,    39,    40,    41,    42,    43,    44,    45,    46,    47,
-      51,    27,    51,    26,    56,    51,    56,    10,    18,    48,
-      48,    52,    48,    17,    56,    52,    51,    19,    52,    52,
-     136,    27,    51,    77,    56,    56,    56,    -1,    -1,    57
+      41,    63,     6,     4,    66,   145,     8,    69,    10,     9,
+      49,    73,    74,     0,    16,     8,    49,    19,    20,    58,
+      10,     3,    55,    16,    14,    26,    19,    20,   168,    91,
+      92,    93,    94,    95,    96,    97,    98,    99,   100,   101,
+     102,    51,    51,   107,    53,    57,    56,    37,    38,    26,
+      27,    50,    52,    52,    49,    57,    57,   121,   120,    49,
+      39,    40,    41,    57,    57,    22,    50,    57,   109,    37,
+      38,    39,    40,    41,    42,    50,    51,    81,    82,    51,
+      37,    38,    39,    40,    41,    42,    43,    44,    45,    46,
+      47,    48,    52,   134,    50,    51,   158,     4,    37,    38,
+      39,    40,    41,    42,    43,    44,    45,    46,    47,    48,
+     151,    50,    37,    38,    39,    40,    41,    42,    43,    44,
+      45,    46,    47,    48,    57,    57,    54,    57,    57,     8,
+      26,    52,    52,    57,    52,    49,    10,    18,    57,    52,
+      49,    53,    17,    49,    36,    53,    57,    57,    53,    53,
+      36,    52,    52,    52,    57,    57,    19,    80,   116,    28,
+      -1,    -1,    79
 };
 
 /* YYSTOS[STATE-NUM] -- The symbol kind of the accessing symbol of
    state STATE-NUM.  */
 static const yytype_int8 yystos[] =
 {
-       0,    61,    62,     0,     3,    56,    48,    56,    71,    72,
-      49,    50,    51,    56,     4,    63,    65,    66,    56,    67,
-      68,    70,    53,    73,    68,    50,    52,    64,    74,    75,
-      77,    78,    56,    56,     8,   106,    51,    27,    51,    26,
-      69,    10,    16,    19,    20,    56,    83,    90,    98,    99,
-     101,   103,   106,   107,   108,   109,    56,    56,    51,   109,
-      10,    14,    36,    37,    48,    56,    87,    88,    89,    95,
-      10,   104,    57,    91,    93,    18,     9,    51,    48,    80,
-      80,    87,    87,    54,    96,    36,    37,    38,    39,    40,
-      41,    42,    43,    44,    45,    46,    47,   100,    87,    87,
-      87,    48,    94,   102,   108,     4,    26,    71,    81,    82,
-      76,    52,    49,    84,    85,    48,    87,    87,    87,    87,
-      87,    87,    87,    87,    87,    87,    87,    87,    17,    22,
-      84,   109,    71,    71,    52,    49,    51,    51,    56,    50,
-      55,    87,    84,   109,   105,    49,    52,    52,    56,    82,
-      63,    79,    86,    49,   109,    92,    56,    56,    51,    87,
-      97,    63
+       0,    62,    63,     0,     3,    57,    49,    57,    72,    73,
+      50,    51,    52,    57,     4,    64,    66,    67,    57,    68,
+      69,    71,    54,    74,    69,    51,    53,    27,    65,    75,
+      76,    57,    57,    77,     8,   112,    26,    81,    52,    70,
+      57,    10,    16,    19,    20,    57,    89,    96,   104,   105,
+     107,   109,   112,   113,   114,   115,    82,    52,    52,    49,
+      86,   115,    10,    14,    37,    38,    49,    57,    93,    94,
+      95,   101,    10,   110,    58,    97,    99,    18,     9,    52,
+      57,     4,    26,    72,    87,    88,    52,    93,    93,    55,
+     102,    37,    38,    39,    40,    41,    42,    43,    44,    45,
+      46,    47,    48,   106,    93,    93,    93,    49,   100,   108,
+     114,    86,    72,    72,    53,    50,    52,    78,    50,    90,
+      91,    49,    93,    93,    93,    93,    93,    93,    93,    93,
+      93,    93,    93,    93,    17,    22,    90,   115,    53,    53,
+      53,    57,    88,    36,    79,    80,    51,    56,    93,    90,
+     115,   111,    50,    57,    57,    57,    52,    64,    92,    50,
+     115,    98,    52,    93,   103,    83,    36,    84,    85,    52,
+      64
 };
 
 /* YYR1[RULE-NUM] -- Symbol kind of the left-hand side of rule RULE-NUM.  */
 static const yytype_int8 yyr1[] =
 {
-       0,    60,    62,    61,    64,    63,    65,    66,    66,    67,
-      67,    69,    68,    70,    70,    71,    72,    72,    73,    73,
-      73,    75,    76,    74,    78,    79,    77,    80,    81,    81,
-      82,    82,    82,    83,    85,    84,    86,    84,    87,    87,
-      87,    87,    87,    87,    87,    87,    87,    87,    87,    87,
-      87,    87,    87,    87,    87,    87,    88,    88,    89,    89,
-      91,    92,    90,    93,    94,    90,    96,    97,    95,    98,
-     100,    99,   101,   102,   101,   104,   105,   103,   106,   107,
-     107,   108,   108,   109,   109,   109,   109,   109,   109
+       0,    61,    63,    62,    65,    64,    66,    67,    67,    68,
+      68,    70,    69,    71,    71,    72,    73,    73,    74,    74,
+      75,    74,    77,    78,    76,    80,    79,    79,    82,    83,
+      81,    85,    84,    84,    86,    87,    87,    88,    88,    88,
+      89,    91,    90,    92,    90,    93,    93,    93,    93,    93,
+      93,    93,    93,    93,    93,    93,    93,    93,    93,    93,
+      93,    93,    93,    94,    94,    95,    95,    97,    98,    96,
+      99,   100,    96,   102,   103,   101,   104,   106,   105,   107,
+     108,   107,   110,   111,   109,   112,   113,   113,   114,   114,
+     115,   115,   115,   115,   115,   115
 };
 
 /* YYR2[RULE-NUM] -- Number of symbols on the right-hand side of rule RULE-NUM.  */
@@ -887,13 +909,14 @@ static const yytype_int8 yyr2[] =
 {
        0,     2,     0,     9,     0,     4,     1,     2,     0,     2,
        1,     0,     5,     3,     1,     1,     3,     1,     0,     3,
-       3,     0,     0,     7,     0,     0,     9,     3,     1,     3,
-       4,     3,     4,     3,     0,     2,     0,     4,     3,     1,
-       2,     2,     3,     3,     3,     3,     3,     3,     3,     3,
-       3,     3,     3,     3,     1,     1,     1,     1,     1,     4,
-       0,     0,     6,     0,     0,     3,     0,     0,     6,     2,
-       0,     5,     1,     0,     4,     0,     0,     6,     3,     1,
-       3,     2,     1,     1,     1,     1,     1,     1,     1
+       0,     4,     0,     0,     7,     0,     2,     2,     0,     0,
+       9,     0,     2,     2,     3,     1,     3,     4,     3,     4,
+       3,     0,     2,     0,     4,     3,     1,     2,     2,     3,
+       3,     3,     3,     3,     3,     3,     3,     3,     3,     3,
+       3,     1,     1,     1,     1,     1,     4,     0,     0,     6,
+       0,     0,     3,     0,     0,     6,     2,     0,     5,     1,
+       0,     4,     0,     0,     6,     3,     1,     3,     2,     1,
+       1,     1,     1,     1,     1,     1
 };
 
 
@@ -1357,28 +1380,28 @@ yyreduce:
   switch (yyn)
     {
   case 2: /* $@1: %empty  */
-#line 138 "./src/compilador.y"
+#line 144 "./src/compilador.y"
              {
              geraCodigo (NULL, "INPP");
              lex_level++;
              }
-#line 1366 "./bin/compilador.tab.c"
+#line 1389 "./bin/compilador.tab.c"
     break;
 
   case 3: /* programa: $@1 PROGRAM IDENT ABRE_PARENTESES lista_id_par FECHA_PARENTESES PONTO_E_VIRGULA bloco PONTO  */
-#line 144 "./src/compilador.y"
+#line 150 "./src/compilador.y"
                          {geraCodigo (NULL, "PARA");}
-#line 1372 "./bin/compilador.tab.c"
+#line 1395 "./bin/compilador.tab.c"
     break;
 
   case 4: /* $@2: %empty  */
-#line 149 "./src/compilador.y"
+#line 155 "./src/compilador.y"
        {}
-#line 1378 "./bin/compilador.tab.c"
+#line 1401 "./bin/compilador.tab.c"
     break;
 
   case 5: /* bloco: parte_declara_vars parte_declara_subrotinas $@2 comando_composto  */
-#line 151 "./src/compilador.y"
+#line 157 "./src/compilador.y"
 {
     int qnt_mems = (yyvsp[-3].intV);
     if(qnt_mems > 0){
@@ -1395,432 +1418,469 @@ yyreduce:
         printf("DROP SYMB: var %s\n", s.ident);
     }
 }
-#line 1399 "./bin/compilador.tab.c"
+#line 1422 "./bin/compilador.tab.c"
     break;
 
   case 6: /* parte_declara_vars: var  */
-#line 171 "./src/compilador.y"
+#line 177 "./src/compilador.y"
                          {(yyval.intV) = (yyvsp[0].intV);}
-#line 1405 "./bin/compilador.tab.c"
+#line 1428 "./bin/compilador.tab.c"
     break;
 
   case 7: /* var: VAR declara_vars  */
-#line 175 "./src/compilador.y"
+#line 181 "./src/compilador.y"
                       {(yyval.intV) = (yyvsp[0].intV);}
-#line 1411 "./bin/compilador.tab.c"
+#line 1434 "./bin/compilador.tab.c"
     break;
 
   case 8: /* var: %empty  */
-#line 176 "./src/compilador.y"
+#line 182 "./src/compilador.y"
      {(yyval.intV) = 0;}
-#line 1417 "./bin/compilador.tab.c"
+#line 1440 "./bin/compilador.tab.c"
     break;
 
   case 9: /* declara_vars: declara_vars declara_var  */
-#line 179 "./src/compilador.y"
+#line 185 "./src/compilador.y"
                                        {(yyval.intV) = (yyvsp[-1].intV) + (yyvsp[0].intV);}
-#line 1423 "./bin/compilador.tab.c"
+#line 1446 "./bin/compilador.tab.c"
     break;
 
   case 10: /* declara_vars: declara_var  */
-#line 180 "./src/compilador.y"
+#line 186 "./src/compilador.y"
                           {(yyval.intV) = (yyvsp[0].intV);}
-#line 1429 "./bin/compilador.tab.c"
+#line 1452 "./bin/compilador.tab.c"
     break;
 
   case 11: /* $@3: %empty  */
-#line 183 "./src/compilador.y"
+#line 189 "./src/compilador.y"
                                             {gen_amem((yyvsp[-2].intV), (yyvsp[0].tptr));}
-#line 1435 "./bin/compilador.tab.c"
+#line 1458 "./bin/compilador.tab.c"
     break;
 
   case 12: /* declara_var: lista_id_var DOIS_PONTOS IDENT $@3 PONTO_E_VIRGULA  */
-#line 183 "./src/compilador.y"
+#line 189 "./src/compilador.y"
                                                                                 {(yyval.intV) = (yyvsp[-4].intV);}
-#line 1441 "./bin/compilador.tab.c"
+#line 1464 "./bin/compilador.tab.c"
     break;
 
   case 13: /* lista_id_var: lista_id_var VIRGULA IDENT  */
-#line 187 "./src/compilador.y"
+#line 193 "./src/compilador.y"
             { /* insere �ltima vars na tabela de s�mbolos */ 
                 (yyval.intV) = (yyvsp[-2].intV) + 1;
                 insert_var_sybTable(&sybTable, (yyvsp[0].tptr), lex_level, (yyval.intV)-1); // tipo ainda desconhecido. 
             }
-#line 1450 "./bin/compilador.tab.c"
+#line 1473 "./bin/compilador.tab.c"
     break;
 
   case 14: /* lista_id_var: IDENT  */
-#line 192 "./src/compilador.y"
+#line 198 "./src/compilador.y"
             { /* insere vars na tabela de s�mbolos */
                 (yyval.intV) = 1;
                 insert_var_sybTable(&sybTable, (yyvsp[0].tptr), lex_level, (yyval.intV)-1); // tipo ainda desconhecido.
             }
-#line 1459 "./bin/compilador.tab.c"
+#line 1482 "./bin/compilador.tab.c"
     break;
 
   case 15: /* lista_id_par: montando_lista_id_par  */
-#line 198 "./src/compilador.y"
+#line 204 "./src/compilador.y"
                                     {(yyval.vecString) = (yyvsp[0].vecString);}
-#line 1465 "./bin/compilador.tab.c"
+#line 1488 "./bin/compilador.tab.c"
     break;
 
   case 16: /* montando_lista_id_par: montando_lista_id_par VIRGULA IDENT  */
-#line 202 "./src/compilador.y"
+#line 208 "./src/compilador.y"
             { // insere os ultimos
                 (yyval.vecString) = (yyvsp[-2].vecString);
                 Vec_String_push(&(yyval.vecString), (yyvsp[0].tptr));
             }
-#line 1474 "./bin/compilador.tab.c"
+#line 1497 "./bin/compilador.tab.c"
     break;
 
   case 17: /* montando_lista_id_par: IDENT  */
-#line 206 "./src/compilador.y"
+#line 212 "./src/compilador.y"
                     {
                 // insere o primeiro parameter na tabela
                 (yyval.vecString) = Vec_String_new(10);
                 Vec_String_push(&(yyval.vecString), (yyvsp[0].tptr));
             }
-#line 1484 "./bin/compilador.tab.c"
+#line 1507 "./bin/compilador.tab.c"
     break;
 
   case 18: /* parte_declara_subrotinas: %empty  */
-#line 213 "./src/compilador.y"
+#line 219 "./src/compilador.y"
                           {(yyval.intV) = 0;}
-#line 1490 "./bin/compilador.tab.c"
+#line 1513 "./bin/compilador.tab.c"
     break;
 
   case 19: /* parte_declara_subrotinas: parte_declara_subrotinas declaracao_procedimento PONTO_E_VIRGULA  */
-#line 214 "./src/compilador.y"
+#line 220 "./src/compilador.y"
                                                                                            {(yyval.intV) = (yyvsp[-2].intV) + 1;}
-#line 1496 "./bin/compilador.tab.c"
+#line 1519 "./bin/compilador.tab.c"
     break;
 
-  case 20: /* parte_declara_subrotinas: parte_declara_subrotinas declaracao_function PONTO_E_VIRGULA  */
-#line 215 "./src/compilador.y"
-                                                                                       {(yyval.intV) = (yyvsp[-2].intV) + 1;}
-#line 1502 "./bin/compilador.tab.c"
+  case 20: /* $@4: %empty  */
+#line 221 "./src/compilador.y"
+                                                   {lex_level++;}
+#line 1525 "./bin/compilador.tab.c"
     break;
 
-  case 21: /* $@4: %empty  */
-#line 218 "./src/compilador.y"
-                         {lex_level++;}
-#line 1508 "./bin/compilador.tab.c"
+  case 21: /* parte_declara_subrotinas: parte_declara_subrotinas $@4 declaracao_function PONTO_E_VIRGULA  */
+#line 221 "./src/compilador.y"
+                                                                                                      {(yyval.intV) = (yyvsp[-3].intV) + 1;}
+#line 1531 "./bin/compilador.tab.c"
     break;
 
   case 22: /* $@5: %empty  */
-#line 218 "./src/compilador.y"
-                                                                           {gen_declara_procedimento_entrar((yyvsp[-1].tptr), (yyvsp[0].intV), NULL);}
-#line 1514 "./bin/compilador.tab.c"
+#line 224 "./src/compilador.y"
+                                   {lex_level++;}
+#line 1537 "./bin/compilador.tab.c"
     break;
 
-  case 23: /* declaracao_procedimento: $@4 PROCEDURE IDENT parametros_formais $@5 PONTO_E_VIRGULA bloco  */
-#line 219 "./src/compilador.y"
-                                               {gen_declara_procedimento_retorna((yyvsp[-3].intV)); lex_level--;}
-#line 1520 "./bin/compilador.tab.c"
-    break;
-
-  case 24: /* $@6: %empty  */
-#line 222 "./src/compilador.y"
-                     {lex_level++;}
-#line 1526 "./bin/compilador.tab.c"
+  case 23: /* $@6: %empty  */
+#line 224 "./src/compilador.y"
+                                                                                           {
+    temp_proc_name = (yyvsp[-2].tptr);
+    temp_qnt_param = (yyvsp[-1].intV);
+}
+#line 1546 "./bin/compilador.tab.c"
     break;
 
   case 25: /* $@7: %empty  */
-#line 222 "./src/compilador.y"
-                                                                                        {gen_declara_procedimento_entrar((yyvsp[-3].tptr), (yyvsp[-2].intV), (yyvsp[0].tptr));}
-#line 1532 "./bin/compilador.tab.c"
+#line 230 "./src/compilador.y"
+                              {gen_declara_procedimento_entrar(temp_proc_name, temp_qnt_param, NULL);}
+#line 1552 "./bin/compilador.tab.c"
     break;
 
-  case 26: /* declaracao_function: $@6 FUNCTION IDENT parametros_formais DOIS_PONTOS IDENT $@7 PONTO_E_VIRGULA bloco  */
-#line 223 "./src/compilador.y"
-                                           {gen_declara_procedimento_retorna((yyvsp[-5].intV)); lex_level--;}
-#line 1538 "./bin/compilador.tab.c"
+  case 26: /* bloc_declaracao_procedimento: $@7 bloco  */
+#line 230 "./src/compilador.y"
+                                                                                                             {gen_declara_procedimento_retorna(temp_qnt_param); lex_level--;}
+#line 1558 "./bin/compilador.tab.c"
     break;
 
-  case 27: /* parametros_formais: ABRE_PARENTESES lista_parametros_formais FECHA_PARENTESES  */
-#line 226 "./src/compilador.y"
-                                                                              {(yyval.intV) = insertFormalParamInSymbolTable();}
-#line 1544 "./bin/compilador.tab.c"
+  case 27: /* bloc_declaracao_procedimento: FORWARD PONTO_E_VIRGULA  */
+#line 231 "./src/compilador.y"
+                                                   {create_declara_procedimento(temp_proc_name, temp_qnt_param, NULL); lex_level--;}
+#line 1564 "./bin/compilador.tab.c"
     break;
 
-  case 30: /* secao_parametros_formais: VAR lista_id_par DOIS_PONTOS IDENT  */
-#line 232 "./src/compilador.y"
-                                                             {Vec_String_push(&(yyvsp[-2].vecString), (yyvsp[0].tptr)); insertParamIdentListInStack((void*)&(yyvsp[-2].vecString), true);}
-#line 1550 "./bin/compilador.tab.c"
-    break;
-
-  case 31: /* secao_parametros_formais: lista_id_par DOIS_PONTOS IDENT  */
-#line 233 "./src/compilador.y"
-                                                         {Vec_String_push(&(yyvsp[-2].vecString), (yyvsp[0].tptr)); insertParamIdentListInStack((void*)&(yyvsp[-2].vecString), false);}
-#line 1556 "./bin/compilador.tab.c"
-    break;
-
-  case 32: /* secao_parametros_formais: FUNCTION lista_id_par DOIS_PONTOS IDENT  */
+  case 28: /* $@8: %empty  */
 #line 234 "./src/compilador.y"
-                                                                  {Vec_String_push(&(yyvsp[-2].vecString), (yyvsp[0].tptr)); insertParamIdentListInStack((void*)&(yyvsp[-2].vecString), false);}
-#line 1562 "./bin/compilador.tab.c"
+                              {lex_level++;}
+#line 1570 "./bin/compilador.tab.c"
     break;
 
-  case 33: /* atribuicao: IDENT ATRIBUICAO expressao  */
-#line 239 "./src/compilador.y"
-                                       {gen_atribuicao((yyvsp[-2].tptr), (yyvsp[0].typeID));}
-#line 1568 "./bin/compilador.tab.c"
-    break;
-
-  case 34: /* $@8: %empty  */
-#line 242 "./src/compilador.y"
-                  {exprList_size = 1;}
-#line 1574 "./bin/compilador.tab.c"
-    break;
-
-  case 35: /* lista_expressoes: $@8 expressao  */
-#line 242 "./src/compilador.y"
-                                                 {(yyval.vecType) = Vec_TypeID_new(10); Vec_TypeID_push(&(yyval.vecType), (yyvsp[0].typeID));}
+  case 29: /* $@9: %empty  */
+#line 234 "./src/compilador.y"
+                                                                                                         {
+    temp_proc_name = (yyvsp[-4].tptr);
+    temp_qnt_param = (yyvsp[-3].intV);
+    temp_typeIdent = (yyvsp[-1].tptr);
+}
 #line 1580 "./bin/compilador.tab.c"
     break;
 
-  case 36: /* $@9: %empty  */
-#line 243 "./src/compilador.y"
-                                           {exprList_size += 1;}
+  case 31: /* $@10: %empty  */
+#line 241 "./src/compilador.y"
+                          {gen_declara_procedimento_entrar(temp_proc_name, temp_qnt_param, temp_typeIdent);}
 #line 1586 "./bin/compilador.tab.c"
     break;
 
-  case 37: /* lista_expressoes: lista_expressoes VIRGULA $@9 expressao  */
-#line 243 "./src/compilador.y"
-                                                                           {(yyval.vecType)=(yyvsp[-3].vecType); Vec_TypeID_push(&(yyval.vecType), (yyvsp[0].typeID));}
+  case 32: /* bloc_declaracao_function: $@10 bloco  */
+#line 241 "./src/compilador.y"
+                                                                                                                   {gen_declara_procedimento_retorna(temp_qnt_param); lex_level--;}
 #line 1592 "./bin/compilador.tab.c"
     break;
 
-  case 38: /* expressao: ABRE_PARENTESES expressao FECHA_PARENTESES  */
-#line 246 "./src/compilador.y"
-                                                      {(yyval.typeID) = (yyvsp[-1].typeID);}
+  case 33: /* bloc_declaracao_function: FORWARD PONTO_E_VIRGULA  */
+#line 242 "./src/compilador.y"
+                                               {create_declara_procedimento(temp_proc_name, temp_qnt_param, temp_typeIdent); lex_level--;}
 #line 1598 "./bin/compilador.tab.c"
     break;
 
-  case 39: /* expressao: chamada_funcao  */
-#line 247 "./src/compilador.y"
-                                            {(yyval.typeID) = (yyvsp[0].typeID);}
+  case 34: /* parametros_formais: ABRE_PARENTESES lista_parametros_formais FECHA_PARENTESES  */
+#line 245 "./src/compilador.y"
+                                                                              {(yyval.intV) = insertFormalParamInSymbolTable();}
 #line 1604 "./bin/compilador.tab.c"
     break;
 
-  case 40: /* expressao: sinal expressao  */
-#line 248 "./src/compilador.y"
-                                            {(yyval.typeID) = (yyvsp[0].typeID); gen_checa_sinal((yyvsp[-1].boolV));}
+  case 37: /* secao_parametros_formais: VAR lista_id_par DOIS_PONTOS IDENT  */
+#line 251 "./src/compilador.y"
+                                                             {Vec_String_push(&(yyvsp[-2].vecString), (yyvsp[0].tptr)); insertParamIdentListInStack((void*)&(yyvsp[-2].vecString), true);}
 #line 1610 "./bin/compilador.tab.c"
     break;
 
-  case 41: /* expressao: NOT expressao  */
-#line 250 "./src/compilador.y"
-                                            {(yyval.typeID) = gen_not((yyvsp[0].typeID));}
+  case 38: /* secao_parametros_formais: lista_id_par DOIS_PONTOS IDENT  */
+#line 252 "./src/compilador.y"
+                                                         {Vec_String_push(&(yyvsp[-2].vecString), (yyvsp[0].tptr)); insertParamIdentListInStack((void*)&(yyvsp[-2].vecString), false);}
 #line 1616 "./bin/compilador.tab.c"
     break;
 
-  case 42: /* expressao: expressao MUL expressao  */
-#line 252 "./src/compilador.y"
-                                            {(yyval.typeID) = gen_operacao((yyvsp[-2].typeID), (yyvsp[-1].tokenType), (yyvsp[0].typeID));}
+  case 39: /* secao_parametros_formais: FUNCTION lista_id_par DOIS_PONTOS IDENT  */
+#line 253 "./src/compilador.y"
+                                                                  {Vec_String_push(&(yyvsp[-2].vecString), (yyvsp[0].tptr)); insertParamIdentListInStack((void*)&(yyvsp[-2].vecString), false);}
 #line 1622 "./bin/compilador.tab.c"
     break;
 
-  case 43: /* expressao: expressao DIV expressao  */
-#line 253 "./src/compilador.y"
-                                            {(yyval.typeID) = gen_operacao((yyvsp[-2].typeID), (yyvsp[-1].tokenType), (yyvsp[0].typeID));}
+  case 40: /* atribuicao: IDENT ATRIBUICAO expressao  */
+#line 258 "./src/compilador.y"
+                                       {gen_atribuicao((yyvsp[-2].tptr), (yyvsp[0].typeID));}
 #line 1628 "./bin/compilador.tab.c"
     break;
 
-  case 44: /* expressao: expressao AND expressao  */
-#line 254 "./src/compilador.y"
-                                            {(yyval.typeID) = gen_operacao((yyvsp[-2].typeID), (yyvsp[-1].tokenType), (yyvsp[0].typeID));}
+  case 41: /* $@11: %empty  */
+#line 261 "./src/compilador.y"
+                  {exprList_size = 1;}
 #line 1634 "./bin/compilador.tab.c"
     break;
 
-  case 45: /* expressao: expressao SOMA expressao  */
-#line 256 "./src/compilador.y"
-                                            {(yyval.typeID) = gen_operacao((yyvsp[-2].typeID), (yyvsp[-1].tokenType), (yyvsp[0].typeID));}
+  case 42: /* lista_expressoes: $@11 expressao  */
+#line 261 "./src/compilador.y"
+                                                 {(yyval.vecType) = Vec_TypeID_new(10); Vec_TypeID_push(&(yyval.vecType), (yyvsp[0].typeID));}
 #line 1640 "./bin/compilador.tab.c"
     break;
 
-  case 46: /* expressao: expressao SUB expressao  */
-#line 257 "./src/compilador.y"
-                                            {(yyval.typeID) = gen_operacao((yyvsp[-2].typeID), (yyvsp[-1].tokenType), (yyvsp[0].typeID));}
+  case 43: /* $@12: %empty  */
+#line 262 "./src/compilador.y"
+                                           {exprList_size += 1;}
 #line 1646 "./bin/compilador.tab.c"
     break;
 
-  case 47: /* expressao: expressao OR expressao  */
-#line 258 "./src/compilador.y"
-                                            {(yyval.typeID) = gen_operacao((yyvsp[-2].typeID), (yyvsp[-1].tokenType), (yyvsp[0].typeID));}
+  case 44: /* lista_expressoes: lista_expressoes VIRGULA $@12 expressao  */
+#line 262 "./src/compilador.y"
+                                                                           {(yyval.vecType)=(yyvsp[-3].vecType); Vec_TypeID_push(&(yyval.vecType), (yyvsp[0].typeID));}
 #line 1652 "./bin/compilador.tab.c"
     break;
 
-  case 48: /* expressao: expressao IGUAL expressao  */
-#line 260 "./src/compilador.y"
-                                            {(yyval.typeID) = gen_operacao((yyvsp[-2].typeID), (yyvsp[-1].tokenType), (yyvsp[0].typeID));}
+  case 45: /* expressao: ABRE_PARENTESES expressao FECHA_PARENTESES  */
+#line 265 "./src/compilador.y"
+                                                      {(yyval.typeID) = (yyvsp[-1].typeID);}
 #line 1658 "./bin/compilador.tab.c"
     break;
 
-  case 49: /* expressao: expressao DIFERENTE expressao  */
-#line 261 "./src/compilador.y"
-                                            {(yyval.typeID) = gen_operacao((yyvsp[-2].typeID), (yyvsp[-1].tokenType), (yyvsp[0].typeID));}
+  case 46: /* expressao: chamada_funcao  */
+#line 266 "./src/compilador.y"
+                                            {(yyval.typeID) = (yyvsp[0].typeID);}
 #line 1664 "./bin/compilador.tab.c"
     break;
 
-  case 50: /* expressao: expressao MAIOR expressao  */
-#line 262 "./src/compilador.y"
-                                            {(yyval.typeID) = gen_operacao((yyvsp[-2].typeID), (yyvsp[-1].tokenType), (yyvsp[0].typeID));}
+  case 47: /* expressao: sinal expressao  */
+#line 267 "./src/compilador.y"
+                                            {(yyval.typeID) = (yyvsp[0].typeID); gen_checa_sinal((yyvsp[-1].boolV));}
 #line 1670 "./bin/compilador.tab.c"
     break;
 
-  case 51: /* expressao: expressao MAIOR_IGUAL expressao  */
-#line 263 "./src/compilador.y"
-                                            {(yyval.typeID) = gen_operacao((yyvsp[-2].typeID), (yyvsp[-1].tokenType), (yyvsp[0].typeID));}
+  case 48: /* expressao: NOT expressao  */
+#line 269 "./src/compilador.y"
+                                            {(yyval.typeID) = gen_not((yyvsp[0].typeID));}
 #line 1676 "./bin/compilador.tab.c"
     break;
 
-  case 52: /* expressao: expressao MENOR expressao  */
-#line 264 "./src/compilador.y"
+  case 49: /* expressao: expressao MUL expressao  */
+#line 271 "./src/compilador.y"
                                             {(yyval.typeID) = gen_operacao((yyvsp[-2].typeID), (yyvsp[-1].tokenType), (yyvsp[0].typeID));}
 #line 1682 "./bin/compilador.tab.c"
     break;
 
-  case 53: /* expressao: expressao MENOR_IGUAL expressao  */
-#line 265 "./src/compilador.y"
+  case 50: /* expressao: expressao DIV expressao  */
+#line 272 "./src/compilador.y"
                                             {(yyval.typeID) = gen_operacao((yyvsp[-2].typeID), (yyvsp[-1].tokenType), (yyvsp[0].typeID));}
 #line 1688 "./bin/compilador.tab.c"
     break;
 
-  case 54: /* expressao: variavel  */
-#line 267 "./src/compilador.y"
-                                            { (yyval.typeID) = gen_carrega_var((yyvsp[0].tptr)); /* TEMPORARIO, FALTA SUPORTE PARA ARRAY */ }
+  case 51: /* expressao: expressao AND expressao  */
+#line 273 "./src/compilador.y"
+                                            {(yyval.typeID) = gen_operacao((yyvsp[-2].typeID), (yyvsp[-1].tokenType), (yyvsp[0].typeID));}
 #line 1694 "./bin/compilador.tab.c"
     break;
 
-  case 55: /* expressao: NUMBER  */
-#line 268 "./src/compilador.y"
-                                            { (yyval.typeID) = gen_carrega_numero((yyvsp[0].intV)); }
+  case 52: /* expressao: expressao SOMA expressao  */
+#line 275 "./src/compilador.y"
+                                            {(yyval.typeID) = gen_operacao((yyvsp[-2].typeID), (yyvsp[-1].tokenType), (yyvsp[0].typeID));}
 #line 1700 "./bin/compilador.tab.c"
     break;
 
-  case 56: /* sinal: SOMA  */
-#line 271 "./src/compilador.y"
-            {(yyval.boolV) = false;}
+  case 53: /* expressao: expressao SUB expressao  */
+#line 276 "./src/compilador.y"
+                                            {(yyval.typeID) = gen_operacao((yyvsp[-2].typeID), (yyvsp[-1].tokenType), (yyvsp[0].typeID));}
 #line 1706 "./bin/compilador.tab.c"
     break;
 
-  case 57: /* sinal: SUB  */
-#line 272 "./src/compilador.y"
-            {(yyval.boolV) = true;}
+  case 54: /* expressao: expressao OR expressao  */
+#line 277 "./src/compilador.y"
+                                            {(yyval.typeID) = gen_operacao((yyvsp[-2].typeID), (yyvsp[-1].tokenType), (yyvsp[0].typeID));}
 #line 1712 "./bin/compilador.tab.c"
     break;
 
-  case 58: /* variavel: IDENT  */
-#line 276 "./src/compilador.y"
-                {(yyval.tptr) = (yyvsp[0].tptr);}
+  case 55: /* expressao: expressao IGUAL expressao  */
+#line 279 "./src/compilador.y"
+                                            {(yyval.typeID) = gen_operacao((yyvsp[-2].typeID), (yyvsp[-1].tokenType), (yyvsp[0].typeID));}
 #line 1718 "./bin/compilador.tab.c"
     break;
 
-  case 59: /* variavel: IDENT ABRE_COLCHETES lista_expressoes FECHA_COLCHETES  */
-#line 277 "./src/compilador.y"
-                                                                {(yyval.tptr) = (yyvsp[-3].tptr);}
+  case 56: /* expressao: expressao DIFERENTE expressao  */
+#line 280 "./src/compilador.y"
+                                            {(yyval.typeID) = gen_operacao((yyvsp[-2].typeID), (yyvsp[-1].tokenType), (yyvsp[0].typeID));}
 #line 1724 "./bin/compilador.tab.c"
     break;
 
-  case 60: /* $@10: %empty  */
-#line 280 "./src/compilador.y"
-                            {setCallingProc((yyvsp[0].tptr));}
+  case 57: /* expressao: expressao MAIOR expressao  */
+#line 281 "./src/compilador.y"
+                                            {(yyval.typeID) = gen_operacao((yyvsp[-2].typeID), (yyvsp[-1].tokenType), (yyvsp[0].typeID));}
 #line 1730 "./bin/compilador.tab.c"
     break;
 
-  case 61: /* $@11: %empty  */
-#line 280 "./src/compilador.y"
-                                                                                                    {gen_chama_procedimento((yyvsp[-4].tptr), (yyvsp[-1].vecType));}
+  case 58: /* expressao: expressao MAIOR_IGUAL expressao  */
+#line 282 "./src/compilador.y"
+                                            {(yyval.typeID) = gen_operacao((yyvsp[-2].typeID), (yyvsp[-1].tokenType), (yyvsp[0].typeID));}
 #line 1736 "./bin/compilador.tab.c"
     break;
 
-  case 62: /* chamada_procedimento: IDENT $@10 ABRE_PARENTESES lista_expressoes FECHA_PARENTESES $@11  */
-#line 280 "./src/compilador.y"
-                                                                                                                                      {callingProc = NULL; allParamRef_flag = false;}
+  case 59: /* expressao: expressao MENOR expressao  */
+#line 283 "./src/compilador.y"
+                                            {(yyval.typeID) = gen_operacao((yyvsp[-2].typeID), (yyvsp[-1].tokenType), (yyvsp[0].typeID));}
 #line 1742 "./bin/compilador.tab.c"
     break;
 
-  case 63: /* $@12: %empty  */
-#line 281 "./src/compilador.y"
-                            {setCallingProc((yyvsp[0].tptr));}
+  case 60: /* expressao: expressao MENOR_IGUAL expressao  */
+#line 284 "./src/compilador.y"
+                                            {(yyval.typeID) = gen_operacao((yyvsp[-2].typeID), (yyvsp[-1].tokenType), (yyvsp[0].typeID));}
 #line 1748 "./bin/compilador.tab.c"
     break;
 
-  case 64: /* $@13: %empty  */
-#line 281 "./src/compilador.y"
-                                                 {gen_chama_procedimento((yyvsp[-1].tptr),Vec_TypeID_new(0));}
+  case 61: /* expressao: variavel  */
+#line 286 "./src/compilador.y"
+                                            { (yyval.typeID) = gen_carrega_var((yyvsp[0].tptr)); /* TEMPORARIO, FALTA SUPORTE PARA ARRAY */ }
 #line 1754 "./bin/compilador.tab.c"
     break;
 
-  case 65: /* chamada_procedimento: IDENT $@12 $@13  */
-#line 281 "./src/compilador.y"
-                                                                                                 {callingProc = NULL; allParamRef_flag = false;}
+  case 62: /* expressao: NUMBER  */
+#line 287 "./src/compilador.y"
+                                            { (yyval.typeID) = gen_carrega_numero((yyvsp[0].intV)); }
 #line 1760 "./bin/compilador.tab.c"
     break;
 
-  case 66: /* $@14: %empty  */
-#line 291 "./src/compilador.y"
-                      {setCallingProc((yyvsp[0].tptr)); geraCodigo(NULL, "AMEM 1");}
+  case 63: /* sinal: SOMA  */
+#line 290 "./src/compilador.y"
+            {(yyval.boolV) = false;}
 #line 1766 "./bin/compilador.tab.c"
     break;
 
-  case 67: /* $@15: %empty  */
+  case 64: /* sinal: SUB  */
 #line 291 "./src/compilador.y"
-                                                                                                                          {gen_chama_funcao((yyvsp[-4].tptr), (yyvsp[-1].vecType));}
+            {(yyval.boolV) = true;}
 #line 1772 "./bin/compilador.tab.c"
     break;
 
-  case 68: /* chamada_funcao: IDENT $@14 ABRE_PARENTESES lista_expressoes FECHA_PARENTESES $@15  */
-#line 291 "./src/compilador.y"
-                                                                                                                                                      {callingProc = NULL; allParamRef_flag = false; Symbol *s = find_syb(&sybTable, (yyvsp[-5].tptr)); (yyval.typeID) = s->atributes.proc_attr.type;}
+  case 65: /* variavel: IDENT  */
+#line 295 "./src/compilador.y"
+                {(yyval.tptr) = (yyvsp[0].tptr);}
 #line 1778 "./bin/compilador.tab.c"
     break;
 
-  case 70: /* $@16: %empty  */
-#line 297 "./src/compilador.y"
-                      {gen_if_then((yyvsp[0].typeID));}
+  case 66: /* variavel: IDENT ABRE_COLCHETES lista_expressoes FECHA_COLCHETES  */
+#line 296 "./src/compilador.y"
+                                                                {(yyval.tptr) = (yyvsp[-3].tptr);}
 #line 1784 "./bin/compilador.tab.c"
     break;
 
-  case 72: /* comando_condicional: if_then  */
-#line 300 "./src/compilador.y"
-                                                   {gen_if_without_else();}
+  case 67: /* $@13: %empty  */
+#line 299 "./src/compilador.y"
+                            {setCallingProc((yyvsp[0].tptr));}
 #line 1790 "./bin/compilador.tab.c"
     break;
 
-  case 73: /* $@17: %empty  */
-#line 301 "./src/compilador.y"
-                                  {gen_if_with_else_part1();}
+  case 68: /* $@14: %empty  */
+#line 299 "./src/compilador.y"
+                                                                                                    {gen_chama_procedimento((yyvsp[-4].tptr), (yyvsp[-1].vecType));}
 #line 1796 "./bin/compilador.tab.c"
     break;
 
-  case 74: /* comando_condicional: if_then ELSE $@17 comando_sem_rotulo  */
-#line 301 "./src/compilador.y"
-                                                                                 {gen_if_with_else_part2();}
+  case 69: /* chamada_procedimento: IDENT $@13 ABRE_PARENTESES lista_expressoes FECHA_PARENTESES $@14  */
+#line 299 "./src/compilador.y"
+                                                                                                                                      {callingProc = NULL; allParamRef_flag = false;}
 #line 1802 "./bin/compilador.tab.c"
     break;
 
-  case 75: /* $@18: %empty  */
-#line 304 "./src/compilador.y"
-                          {gen_while_part1();}
+  case 70: /* $@15: %empty  */
+#line 300 "./src/compilador.y"
+                            {setCallingProc((yyvsp[0].tptr));}
 #line 1808 "./bin/compilador.tab.c"
     break;
 
-  case 76: /* $@19: %empty  */
-#line 304 "./src/compilador.y"
-                                                            {gen_while_part2((yyvsp[-1].typeID));}
+  case 71: /* $@16: %empty  */
+#line 300 "./src/compilador.y"
+                                                 {gen_chama_procedimento((yyvsp[-1].tptr),Vec_TypeID_new(0));}
 #line 1814 "./bin/compilador.tab.c"
     break;
 
-  case 77: /* comando_repititivo: WHILE $@18 expressao DO $@19 comando_sem_rotulo  */
-#line 304 "./src/compilador.y"
-                                                                                                      {gen_while_part3();}
+  case 72: /* chamada_procedimento: IDENT $@15 $@16  */
+#line 300 "./src/compilador.y"
+                                                                                                 {callingProc = NULL; allParamRef_flag = false;}
 #line 1820 "./bin/compilador.tab.c"
     break;
 
+  case 73: /* $@17: %empty  */
+#line 310 "./src/compilador.y"
+                      {setCallingProc((yyvsp[0].tptr)); geraCodigo(NULL, "AMEM 1");}
+#line 1826 "./bin/compilador.tab.c"
+    break;
 
-#line 1824 "./bin/compilador.tab.c"
+  case 74: /* $@18: %empty  */
+#line 310 "./src/compilador.y"
+                                                                                                                          {gen_chama_funcao((yyvsp[-4].tptr), (yyvsp[-1].vecType));}
+#line 1832 "./bin/compilador.tab.c"
+    break;
+
+  case 75: /* chamada_funcao: IDENT $@17 ABRE_PARENTESES lista_expressoes FECHA_PARENTESES $@18  */
+#line 310 "./src/compilador.y"
+                                                                                                                                                      {callingProc = NULL; allParamRef_flag = false; Symbol *s = find_syb(&sybTable, (yyvsp[-5].tptr)); (yyval.typeID) = s->atributes.proc_attr.type;}
+#line 1838 "./bin/compilador.tab.c"
+    break;
+
+  case 77: /* $@19: %empty  */
+#line 316 "./src/compilador.y"
+                      {gen_if_then((yyvsp[0].typeID));}
+#line 1844 "./bin/compilador.tab.c"
+    break;
+
+  case 79: /* comando_condicional: if_then  */
+#line 319 "./src/compilador.y"
+                                                   {gen_if_without_else();}
+#line 1850 "./bin/compilador.tab.c"
+    break;
+
+  case 80: /* $@20: %empty  */
+#line 320 "./src/compilador.y"
+                                  {gen_if_with_else_part1();}
+#line 1856 "./bin/compilador.tab.c"
+    break;
+
+  case 81: /* comando_condicional: if_then ELSE $@20 comando_sem_rotulo  */
+#line 320 "./src/compilador.y"
+                                                                                 {gen_if_with_else_part2();}
+#line 1862 "./bin/compilador.tab.c"
+    break;
+
+  case 82: /* $@21: %empty  */
+#line 323 "./src/compilador.y"
+                          {gen_while_part1();}
+#line 1868 "./bin/compilador.tab.c"
+    break;
+
+  case 83: /* $@22: %empty  */
+#line 323 "./src/compilador.y"
+                                                            {gen_while_part2((yyvsp[-1].typeID));}
+#line 1874 "./bin/compilador.tab.c"
+    break;
+
+  case 84: /* comando_repititivo: WHILE $@21 expressao DO $@22 comando_sem_rotulo  */
+#line 323 "./src/compilador.y"
+                                                                                                      {gen_while_part3();}
+#line 1880 "./bin/compilador.tab.c"
+    break;
+
+
+#line 1884 "./bin/compilador.tab.c"
 
       default: break;
     }
@@ -2013,7 +2073,7 @@ yyreturnlab:
   return yyresult;
 }
 
-#line 326 "./src/compilador.y"
+#line 345 "./src/compilador.y"
 
 
 // ===============
@@ -2279,8 +2339,6 @@ bool gen_special_functions(char *proc_name, Vec_TypeID expressionType_list){
         // geraCodigo(NULL, mepaCommand);
         // free(mepaCommand);
 
-        fprintf(stderr, "FLAG = %d\n", exprShouldBeRef());
-
         for(int i=2; i<=qnt_param+1; i++){
             geraCodigo(NULL, "LEIT");
             Symbol s=sybTable.data[sybTable.size - i];
@@ -2299,7 +2357,7 @@ bool gen_special_functions(char *proc_name, Vec_TypeID expressionType_list){
     return true;
 }
 
-void gen_declara_procedimento_entrar(char *proc_name, int qnt_param, char* typeIdent){
+void create_declara_procedimento(char *proc_name, int qnt_param, char* typeIdent){
     char *rotulo = novo_rotulo();
     Symbol *proc_syb = insert_proc_sybTable(&sybTable, proc_name, lex_level, rotulo, qnt_param);
 
@@ -2323,6 +2381,12 @@ void gen_declara_procedimento_entrar(char *proc_name, int qnt_param, char* typeI
         bool paramIsRef = s.atributes.param_attr.isRef;
         Vec_bool_push(&proc_syb->atributes.proc_attr.isRef, paramIsRef);
     }
+}
+
+void gen_declara_procedimento_entrar(char *proc_name, int qnt_param, char* typeIdent){
+    Symbol *s = find_syb(&sybTable, proc_name);
+    if(s == NULL)
+        create_declara_procedimento(proc_name, qnt_param, typeIdent);
 
     char *rotulo_skip_proc = novo_rotulo();
     Vec_String_push(&rotulosStack, rotulo_skip_proc);

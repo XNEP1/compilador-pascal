@@ -45,7 +45,7 @@
 extern int yydebug;
 #endif
 /* "%code requires" blocks.  */
-#line 81 "./src/compilador.y"
+#line 86 "./src/compilador.y"
 
 #include "Types.h"
 DEF_VEC(Vec_String, char*)
@@ -95,30 +95,31 @@ DEF_VEC(Vec_Vec_String, Vec_String)
     SET = 288,                     /* SET  */
     T_TO = 289,                    /* T_TO  */
     WITH = 290,                    /* WITH  */
-    SOMA = 291,                    /* SOMA  */
-    SUB = 292,                     /* SUB  */
-    MUL = 293,                     /* MUL  */
-    DIV = 294,                     /* DIV  */
-    AND = 295,                     /* AND  */
-    OR = 296,                      /* OR  */
-    IGUAL = 297,                   /* IGUAL  */
-    DIFERENTE = 298,               /* DIFERENTE  */
-    MENOR = 299,                   /* MENOR  */
-    MENOR_IGUAL = 300,             /* MENOR_IGUAL  */
-    MAIOR = 301,                   /* MAIOR  */
-    MAIOR_IGUAL = 302,             /* MAIOR_IGUAL  */
-    ABRE_PARENTESES = 303,         /* ABRE_PARENTESES  */
-    FECHA_PARENTESES = 304,        /* FECHA_PARENTESES  */
-    VIRGULA = 305,                 /* VIRGULA  */
-    PONTO_E_VIRGULA = 306,         /* PONTO_E_VIRGULA  */
-    DOIS_PONTOS = 307,             /* DOIS_PONTOS  */
-    PONTO = 308,                   /* PONTO  */
-    ABRE_COLCHETES = 309,          /* ABRE_COLCHETES  */
-    FECHA_COLCHETES = 310,         /* FECHA_COLCHETES  */
-    IDENT = 311,                   /* IDENT  */
-    ATRIBUICAO = 312,              /* ATRIBUICAO  */
-    LOWER_THAN_ELSE = 313,         /* LOWER_THAN_ELSE  */
-    EXPRESSAO_PREC = 314           /* EXPRESSAO_PREC  */
+    FORWARD = 291,                 /* FORWARD  */
+    SOMA = 292,                    /* SOMA  */
+    SUB = 293,                     /* SUB  */
+    MUL = 294,                     /* MUL  */
+    DIV = 295,                     /* DIV  */
+    AND = 296,                     /* AND  */
+    OR = 297,                      /* OR  */
+    IGUAL = 298,                   /* IGUAL  */
+    DIFERENTE = 299,               /* DIFERENTE  */
+    MENOR = 300,                   /* MENOR  */
+    MENOR_IGUAL = 301,             /* MENOR_IGUAL  */
+    MAIOR = 302,                   /* MAIOR  */
+    MAIOR_IGUAL = 303,             /* MAIOR_IGUAL  */
+    ABRE_PARENTESES = 304,         /* ABRE_PARENTESES  */
+    FECHA_PARENTESES = 305,        /* FECHA_PARENTESES  */
+    VIRGULA = 306,                 /* VIRGULA  */
+    PONTO_E_VIRGULA = 307,         /* PONTO_E_VIRGULA  */
+    DOIS_PONTOS = 308,             /* DOIS_PONTOS  */
+    PONTO = 309,                   /* PONTO  */
+    ABRE_COLCHETES = 310,          /* ABRE_COLCHETES  */
+    FECHA_COLCHETES = 311,         /* FECHA_COLCHETES  */
+    IDENT = 312,                   /* IDENT  */
+    ATRIBUICAO = 313,              /* ATRIBUICAO  */
+    LOWER_THAN_ELSE = 314,         /* LOWER_THAN_ELSE  */
+    EXPRESSAO_PREC = 315           /* EXPRESSAO_PREC  */
   };
   typedef enum yytokentype yytoken_kind_t;
 #endif
@@ -127,7 +128,7 @@ DEF_VEC(Vec_Vec_String, Vec_String)
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 union YYSTYPE
 {
-#line 88 "./src/compilador.y"
+#line 93 "./src/compilador.y"
 
   int intV;
   double doubleV;
@@ -138,7 +139,7 @@ union YYSTYPE
   Vec_String vecString;
   yytoken_kind_t tokenType;
 
-#line 142 "./bin/compilador.tab.h"
+#line 143 "./bin/compilador.tab.h"
 
 };
 typedef union YYSTYPE YYSTYPE;
